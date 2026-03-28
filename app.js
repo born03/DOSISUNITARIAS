@@ -4,29 +4,31 @@ let etiquetasPendientes = [];
 let dbMedicamentos = [];
 const NOMBRE_QUIMICO = "E. RICARDO L."; 
 
-// ESTADO DE LA VISTA
 let currentTab = "DIARIA"; 
 let currentServicio = "TODOS";
+
+// SEGURO ANTI-COLISIÓN (Para que no se buggee mientras usas la app)
+let bloqueoSincronizacion = false; 
 
 const modal = document.getElementById('modalForm');
 const form = document.getElementById('etiquetaForm');
 const inputId = document.getElementById('etiquetaId');
-const inputCama = document.getElementById('cama');
-const inputNombre = document.getElementById('nombre');
-const inputMed = document.getElementById('medicamento');
-const inputDosis = document.getElementById('dosis');
-const inputHorario = document.getElementById('horario');
-const inputVolFinalManual = document.getElementById('volFinalManual');
+const inputCama = document.getElementById('input_cama');
+const inputNombre = document.getElementById('input_nombre');
+const inputMed = document.getElementById('input_medicamento');
+const inputDosis = document.getElementById('input_dosis');
+const inputHorario = document.getElementById('input_horario');
+const inputVolFinalManual = document.getElementById('input_volFinalManual');
 const grupoVolManual = document.getElementById('grupoVolManual');
 const syncIcon = document.getElementById('syncIcon');
 const dbStatus = document.getElementById('dbStatus');
 
-// ESCUCHADORES DE PESTAÑAS Y SERVICIOS (Custom Events)
+// PESTAÑAS Y SERVICIOS
 document.addEventListener('cambioTab', (e) => {
     currentTab = e.detail;
     document.getElementById('tabDiaria').className = currentTab === 'DIARIA' ? 'tab-btn active' : 'tab-btn';
     document.getElementById('tabPrn').className = currentTab === 'PRN' ? 'tab-btn active-prn' : 'tab-btn';
-    currentServicio = "TODOS"; // Reiniciar filtro al cambiar de pestaña
+    currentServicio = "TODOS"; 
     renderizarInterfaz();
 });
 
@@ -35,10 +37,11 @@ document.addEventListener('cambioServicio', (e) => {
     renderizarInterfaz();
 });
 
+// ABRIR FORMULARIO (Se adapta a la pestaña actual)
 document.getElementById('btnOpenModal').addEventListener('click', () => { 
     limpiarFormulario();
-    document.getElementById('modalTitle').innerText = "Nueva Etiqueta";
-    document.getElementById('btnSubmitForm').innerText = "AGREGAR A " + currentTab;
+    document.getElementById('modalTitle').innerText = `Nueva Etiqueta (${currentTab})`;
+    document.getElementById('btnSubmitForm').innerText = `AGREGAR A ${currentTab}`;
     grupoVolManual.style.display = 'none'; 
     modal.style.display = 'flex'; 
 });
@@ -49,14 +52,14 @@ inputCama.addEventListener('input', () => {
     inputNombre.value = paciente ? paciente.NOMBRE : ''; 
 });
 
-// MOTOR DE SINCRONIZACIÓN A 4 SEGUNDOS
-let isSyncing = false;
+// MOTOR DE SINCRONIZACIÓN A 4 SEGUNDOS (Con Seguro Anti-Colisión)
 async function fetchSyncRealTime() {
-    if (isSyncing || modal.style.display === 'flex') return; 
+    // Si la app está guardando, o el modal está abierto, NO interrumpir
+    if (bloqueoSincronizacion || modal.style.display === 'flex') return; 
+    
     try {
         const response = await fetch(URL_APPS_SCRIPT);
         const data = await response.json();
-        
         dbMedicamentos = data.medicamentos || [];
         const datosNube = data.activas || [];
         
@@ -70,17 +73,18 @@ async function fetchSyncRealTime() {
     }
 }
 fetchSyncRealTime().then(() => {
-    setInterval(fetchSyncRealTime, 4000); // ACTUALIZACIÓN CADA 4 SEGUNDOS
+    setInterval(fetchSyncRealTime, 4000); 
 });
 
+// FUNCIÓN DE GUARDADO SEGURO
 async function pushToNube() {
-    isSyncing = true;
+    bloqueoSincronizacion = true; // Bloquea la recarga automática
     try {
         dbStatus.innerText = "Guardando...";
         syncIcon.style.display = 'inline-block';
         await fetch(URL_APPS_SCRIPT, {
             method: 'POST',
-            body: JSON.stringify({ action: "SYNC", datos: etiquetasPendientes }), // Siempre manda todo
+            body: JSON.stringify({ action: "SYNC", datos: etiquetasPendientes }),
             mode: 'no-cors', 
             headers: { 'Content-Type': 'text/plain;charset=utf-8' }
         });
@@ -89,7 +93,7 @@ async function pushToNube() {
         dbStatus.innerText = "Pendiente...";
     } finally {
         syncIcon.style.display = 'none';
-        isSyncing = false;
+        bloqueoSincronizacion = false; // Libera el programa
     }
 }
 
@@ -103,11 +107,15 @@ function calcularServicio(cama) {
     if (c >= 550 && c <= 559) return "MED INT";
     return "URGENCIAS";
 }
+
+// MATEMÁTICAS PROTEGIDAS CONTRA NULL / ZERO
 function calcularVolMed(dosis, presentacion) {
+    if (!presentacion || isNaN(presentacion) || Number(presentacion) === 0) return "";
     let calculo = dosis / Number(presentacion);
     return calculo < 0.1 ? Math.round(calculo * 100) / 100.0 : Math.round(calculo * 10) / 10.0;
 }
 function calcularVolFinal(dosis, concentracion, diluyente) {
+    if (!concentracion || isNaN(concentracion) || Number(concentracion) === 0) return "";
     let division = dosis / Number(concentracion);
     if (!diluyente || String(diluyente).trim() === "") return division;
     if (division <= 1) return 1;
@@ -118,14 +126,15 @@ function calcularVolFinal(dosis, concentracion, diluyente) {
 // GUARDAR / ACTUALIZAR
 form.addEventListener('submit', function(e) {
     e.preventDefault();
+    bloqueoSincronizacion = true; // Congela la pantalla mientras piensas
 
     const idActual = inputId.value;
-    const tipo = currentTab; // Siempre guarda en la pestaña actual
+    const tipo = currentTab; // Se guarda en la pestaña actual
     const cama = inputCama.value;
     const nombre = inputNombre.value.toUpperCase();
     let nombreMedInput = inputMed.value.toUpperCase().trim();
     const dosis = parseFloat(inputDosis.value);
-    const horario = inputHorario.value.toUpperCase() || "N/A"; // Si lo deja blanco, pone N/A
+    const horario = inputHorario.value.toUpperCase() || ""; // Ya es opcional
     const volFinalManualStr = inputVolFinalManual.value;
 
     let configMed = dbMedicamentos.find(m => String(m.MEDICAMENTO).toUpperCase() === nombreMedInput);
@@ -133,7 +142,10 @@ form.addEventListener('submit', function(e) {
         configMed = dbMedicamentos.find(m => String(m.MEDICAMENTO).toUpperCase().startsWith(nombreMedInput));
         if (!configMed) configMed = dbMedicamentos.find(m => String(m.MEDICAMENTO).toUpperCase().includes(nombreMedInput));
         if (configMed) nombreMedInput = configMed.MEDICAMENTO; 
-        else return alert("Medicamento no encontrado.");
+        else {
+            bloqueoSincronizacion = false;
+            return alert("Medicamento no encontrado.");
+        }
     }
 
     const volFinalDefinitivo = volFinalManualStr !== "" ? parseFloat(volFinalManualStr) : calcularVolFinal(dosis, configMed.CONCENTRACION, configMed.DILUYENTE);
@@ -144,7 +156,7 @@ form.addEventListener('submit', function(e) {
         SERVICIO: calcularServicio(cama), "VOL MED": calcularVolMed(dosis, configMed.PRESENTACION),
         "VOL FINAL": volFinalDefinitivo,
         SOLUCION: configMed.DILUYENTE || "", TIEMPO: configMed.TIEMPO || "",
-        UNIDADES: configMed.UNIDADES || "MG", VIA: configMed.VIA || "IV",
+        UNIDADES: configMed.UNIDADES || "", VIA: configMed.VIA || "",
         fecha_registro: new Date().toISOString()
     };
 
@@ -166,12 +178,6 @@ form.addEventListener('submit', function(e) {
     } else {
         etiquetasPendientes.push(etiquetaObj);
         inputMed.value = ''; inputDosis.value = ''; inputHorario.value = '';
-        
-        // Bloquear inputs temporalmente para resetear hack de móvil
-        inputMed.setAttribute('readonly', true);
-        inputDosis.setAttribute('readonly', true);
-        inputHorario.setAttribute('readonly', true);
-        
         inputMed.focus(); 
     }
 
@@ -182,16 +188,15 @@ form.addEventListener('submit', function(e) {
 function limpiarFormulario() {
     inputId.value = ''; inputCama.value = ''; inputNombre.value = '';
     inputMed.value = ''; inputDosis.value = ''; inputHorario.value = ''; inputVolFinalManual.value = '';
-    // Restablecer el bloqueo de readonly para el hack
-    document.querySelectorAll('#etiquetaForm input').forEach(i => i.setAttribute('readonly', true));
 }
 
-// DELEGACIÓN: EDITAR Y TRASLADAR
+// DELEGACIÓN: EDITAR Y TRASLADAR (Con Seguro Anti-Colisión)
 document.getElementById('listaPacientes').addEventListener('click', (e) => {
     const btnEdit = e.target.closest('.btn-edit');
     const btnSwap = e.target.closest('.btn-swap');
 
     if (btnEdit) {
+        bloqueoSincronizacion = true; // Bloquea mientras editas
         const idToEdit = btnEdit.dataset.id;
         const etiqueta = etiquetasPendientes.find(et => et.id === idToEdit);
         if (etiqueta) {
@@ -200,16 +205,13 @@ document.getElementById('listaPacientes').addEventListener('click', (e) => {
             inputNombre.value = etiqueta.NOMBRE;
             inputMed.value = etiqueta.MEDICAMENTO;
             inputDosis.value = etiqueta.DOSIS;
-            inputHorario.value = etiqueta.HORARIO === "N/A" ? "" : etiqueta.HORARIO;
+            inputHorario.value = etiqueta.HORARIO;
             
             const configMed = dbMedicamentos.find(m => String(m.MEDICAMENTO).toUpperCase() === etiqueta.MEDICAMENTO);
             const calcVol = configMed ? calcularVolFinal(etiqueta.DOSIS, configMed.CONCENTRACION, configMed.DILUYENTE) : "";
             inputVolFinalManual.value = (String(etiqueta["VOL FINAL"]) !== String(calcVol)) ? etiqueta["VOL FINAL"] : '';
 
-            // Quitar el readonly al editar
-            document.querySelectorAll('#etiquetaForm input').forEach(i => i.removeAttribute('readonly'));
-
-            document.getElementById('modalTitle').innerText = "Editar Etiqueta";
+            document.getElementById('modalTitle').innerText = `Editar Etiqueta`;
             document.getElementById('btnSubmitForm').innerText = "ACTUALIZAR CAMBIOS";
             grupoVolManual.style.display = 'block'; 
             modal.style.display = 'flex';
@@ -217,11 +219,11 @@ document.getElementById('listaPacientes').addEventListener('click', (e) => {
     }
 
     if (btnSwap) {
+        bloqueoSincronizacion = true;
         const idToSwap = btnSwap.dataset.id;
         const index = etiquetasPendientes.findIndex(et => et.id === idToSwap);
         if (index > -1) {
-            const nuevoTipo = etiquetasPendientes[index].TIPO === "DIARIA" ? "PRN" : "DIARIA";
-            etiquetasPendientes[index].TIPO = nuevoTipo;
+            etiquetasPendientes[index].TIPO = etiquetasPendientes[index].TIPO === "DIARIA" ? "PRN" : "DIARIA";
             renderizarInterfaz();
             pushToNube();
         }
@@ -231,11 +233,15 @@ document.getElementById('listaPacientes').addEventListener('click', (e) => {
 document.getElementById('btnEliminarSeleccionados').addEventListener('click', () => {
     const checkboxes = document.querySelectorAll('.med-checkbox:checked');
     if(checkboxes.length === 0) return alert("Selecciona etiquetas con las casillas.");
+    
+    bloqueoSincronizacion = true; // Bloquea
     if(confirm(`¿Eliminar ${checkboxes.length} etiquetas?`)) {
         const idsToDelete = Array.from(checkboxes).map(cb => cb.dataset.id);
         etiquetasPendientes = etiquetasPendientes.filter(e => !idsToDelete.includes(e.id));
         renderizarInterfaz();
         pushToNube();
+    } else {
+        bloqueoSincronizacion = false; // Libera si canceló
     }
 });
 
@@ -243,7 +249,7 @@ function renderizarInterfaz() {
     const panelServicios = document.getElementById('listaServicios');
     const panelPacientes = document.getElementById('listaPacientes');
     
-    // FILTRAR PRIMERO POR LA PESTAÑA ACTUAL
+    // FILTRAR POR LA PESTAÑA ACTUAL
     const listaVisiblePestaña = etiquetasPendientes.filter(e => (e.TIPO || "DIARIA") === currentTab);
 
     if (listaVisiblePestaña.length === 0) {
@@ -252,7 +258,6 @@ function renderizarInterfaz() {
         return;
     }
 
-    // CONSTRUIR BARRA DE SERVICIOS (Basado solo en la pestaña actual)
     const conteoServicios = {};
     listaVisiblePestaña.forEach(etiq => {
         conteoServicios[etiq.SERVICIO] = (conteoServicios[etiq.SERVICIO] || 0) + 1;
@@ -270,7 +275,7 @@ function renderizarInterfaz() {
     });
     panelServicios.innerHTML = htmlServicios;
 
-    // FILTRAR POR SERVICIO SELECCIONADO PARA MOSTRAR PACIENTES
+    // FILTRAR POR SERVICIO 
     const listaFinalVista = currentServicio === 'TODOS' ? listaVisiblePestaña : listaVisiblePestaña.filter(e => e.SERVICIO === currentServicio);
 
     if(listaFinalVista.length === 0) {
@@ -292,7 +297,7 @@ function renderizarInterfaz() {
     Object.keys(gruposPacientes).sort().forEach(servicio => {
         const pacientes = gruposPacientes[servicio];
         Object.keys(pacientes).sort().forEach(pacienteStr => {
-            htmlPacientes += `<div class="grupo-paciente"><div class="header-paciente ${headerClass}"><i class="material-icons">hotel</i> ${pacienteStr} (${servicio})</div>`;
+            htmlPacientes += `<div class="grupo-paciente"><div class="header-paciente ${headerClass}"><i class="material-icons">hotel</i> ${pacienteStr}</div>`;
             htmlPacientes += `<div class="table-responsive"><table class="med-table">
                                 <tr>
                                     <th style="width: 25px;"></th>
@@ -306,6 +311,7 @@ function renderizarInterfaz() {
             pacientes[pacienteStr].forEach(med => {
                 const iconSwap = currentTab === "DIARIA" ? "arrow_forward" : "arrow_back";
                 const titleSwap = currentTab === "DIARIA" ? "Mover a PRN" : "Mover a DIARIA";
+                const vFinalStr = med['VOL FINAL'] !== "" && med['VOL FINAL'] !== null ? `${med['VOL FINAL']} ml` : '';
 
                 htmlPacientes += `
                     <tr>
@@ -313,7 +319,7 @@ function renderizarInterfaz() {
                         <td class="med-name">${med.MEDICAMENTO} <span style="font-size:10px; color:#9aa0a6;">(${med.VIA || 'IV'})</span></td>
                         <td>${med.DOSIS} <span style="font-size:11px; color:#5f6368;">${med.UNIDADES || "MG"}</span></td>
                         <td>${med.HORARIO}</td>
-                        <td class="med-vol">${med['VOL FINAL']} ml</td>
+                        <td class="med-vol">${vFinalStr}</td>
                         <td class="actions-cell">
                             <button class="btn-swap" data-id="${med.id}" title="${titleSwap}"><i class="material-icons" style="font-size:18px;">${iconSwap}</i></button>
                             <button class="btn-edit" data-id="${med.id}" title="Editar"><i class="material-icons" style="font-size:18px;">edit</i></button>
@@ -326,7 +332,6 @@ function renderizarInterfaz() {
     panelPacientes.innerHTML = htmlPacientes;
 }
 
-// OBTENER SOLO LA VISTA ACTUAL PARA IMPRIMIR/GUARDAR
 function obtenerEtiquetasVista() {
     return etiquetasPendientes.filter(e => {
         const matchTab = (e.TIPO || "DIARIA") === currentTab;
@@ -335,7 +340,7 @@ function obtenerEtiquetasVista() {
     });
 }
 
-// IMPRIMIR NATIVO (SOLO LA VISTA ACTUAL)
+// IMPRIMIR NATIVO (LIMPIO DE NULLS)
 document.getElementById('btnImprimir').addEventListener('click', () => {
     const aImprimir = obtenerEtiquetasVista();
     if (aImprimir.length === 0) return alert("No hay etiquetas en esta vista para imprimir.");
@@ -351,7 +356,15 @@ document.getElementById('btnImprimir').addEventListener('click', () => {
             if (i + j < aImprimir.length) {
                 let etiq = aImprimir[i + j];
                 let tituloMed = etiq.TIPO === "PRN" ? `<span class="prn-mark">PRN</span> ${etiq.MEDICAMENTO}` : etiq.MEDICAMENTO;
-                let textoVolumen = (etiq["VOL MED"] && String(etiq["VOL MED"]) !== "0") ? ` - ${etiq["VOL MED"]}${etiq.SOLUCION ? " ML" : ""}` : "";
+                
+                // Formateo estricto para evitar nulls
+                let unidad = (etiq.UNIDADES && etiq.UNIDADES !== "null") ? etiq.UNIDADES : "";
+                let via = (etiq.VIA && etiq.VIA !== "null") ? etiq.VIA : "";
+                let tiempo = (etiq.TIEMPO && etiq.TIEMPO !== "null" && etiq.TIEMPO !== "") ? `P/${etiq.TIEMPO}` : "";
+                let solucion = (etiq.SOLUCION && etiq.SOLUCION !== "null") ? etiq.SOLUCION : "";
+                let horario = (etiq.HORARIO && etiq.HORARIO !== "null") ? etiq.HORARIO : "";
+                let volMed = (etiq["VOL MED"] && String(etiq["VOL MED"]) !== "0" && etiq["VOL MED"] !== "null") ? ` - ${etiq["VOL MED"]}${solucion ? " ML" : ""}` : "";
+                let volFinal = (etiq["VOL FINAL"] && etiq["VOL FINAL"] !== "null" && etiq["VOL FINAL"] !== "") ? `VOL. FINAL: ${etiq['VOL FINAL']} ML` : "";
                 
                 tableHTML += `
                 <td>
@@ -359,9 +372,9 @@ document.getElementById('btnImprimir').addEventListener('click', () => {
                         <p class="bold">NOMBRE: ${etiq.NOMBRE}</p>
                         <p class="bold">SERVICIO: ${etiq.SERVICIO} &nbsp;&nbsp; CAMA: ${etiq.CAMA}</p>
                         <p>FECHA: ${fechaStr} &nbsp;&nbsp; ${NOMBRE_QUIMICO}</p>
-                        <p class="bold">${tituloMed} ${etiq.DOSIS} ${etiq.UNIDADES || "MG"}${textoVolumen} ${etiq.VIA || "IV"} ${etiq.TIEMPO ? " P/"+etiq.TIEMPO : ""}</p>
-                        <p>${etiq.SOLUCION}</p>
-                        <p class="bold">VOL. FINAL: ${etiq['VOL FINAL']} ML &nbsp;&nbsp; HR: ${etiq.HORARIO}</p>
+                        <p class="bold">${tituloMed} ${etiq.DOSIS} ${unidad}${volMed} ${via} ${tiempo}</p>
+                        <p>${solucion}</p>
+                        <p class="bold">${volFinal} &nbsp;&nbsp; ${horario ? 'HR: '+horario : ''}</p>
                     </div>
                 </td>`;
             } else {
@@ -376,10 +389,10 @@ document.getElementById('btnImprimir').addEventListener('click', () => {
     window.print();
 });
 
-// GENERAR DOCUMENTO DRIVE (SOLO LA VISTA ACTUAL)
+// GENERAR DOCUMENTO DRIVE
 document.getElementById('btnGuardar').addEventListener('click', async () => {
     const aGuardar = obtenerEtiquetasVista();
-    if (aGuardar.length === 0) return alert("No hay etiquetas en esta vista para generar el documento.");
+    if (aGuardar.length === 0) return alert("No hay etiquetas en esta vista.");
     
     const btn = document.getElementById('btnGuardar');
     btn.innerHTML = '<i class="material-icons">sync</i> GENERANDO...';
@@ -392,7 +405,7 @@ document.getElementById('btnGuardar').addEventListener('click', async () => {
             mode: 'no-cors', 
             headers: { 'Content-Type': 'text/plain;charset=utf-8' }
         });
-        alert(`Documento generado en Drive con las etiquetas de ${currentTab} ${currentServicio !== 'TODOS' ? '('+currentServicio+')' : ''}.`);
+        alert(`Documento generado con la vista actual.`);
     } catch (e) {
         alert("Error al generar en Drive.");
     } finally {
