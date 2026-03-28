@@ -6,8 +6,6 @@ const NOMBRE_QUIMICO = "E. RICARDO L.";
 
 let currentTab = "DIARIA"; 
 let currentServicio = "TODOS";
-
-// SEGURO ANTI-COLISIÓN (Para que no se buggee mientras usas la app)
 let bloqueoSincronizacion = false; 
 
 const modal = document.getElementById('modalForm');
@@ -22,13 +20,22 @@ const inputVolFinalManual = document.getElementById('input_volFinalManual');
 const grupoVolManual = document.getElementById('grupoVolManual');
 const syncIcon = document.getElementById('syncIcon');
 const dbStatus = document.getElementById('dbStatus');
+const btnGuardarDrive = document.getElementById('btnGuardar'); // Seleccionamos el botón de Drive
 
-// PESTAÑAS Y SERVICIOS
+// CONTROL DE PESTAÑAS Y SERVICIOS
 document.addEventListener('cambioTab', (e) => {
     currentTab = e.detail;
     document.getElementById('tabDiaria').className = currentTab === 'DIARIA' ? 'tab-btn active' : 'tab-btn';
     document.getElementById('tabPrn').className = currentTab === 'PRN' ? 'tab-btn active-prn' : 'tab-btn';
     currentServicio = "TODOS"; 
+    
+    // MAGIA AQUÍ: Ocultar botón Drive si estamos en PRN
+    if (currentTab === "PRN") {
+        btnGuardarDrive.style.display = 'none';
+    } else {
+        btnGuardarDrive.style.display = 'flex';
+    }
+
     renderizarInterfaz();
 });
 
@@ -37,13 +44,13 @@ document.addEventListener('cambioServicio', (e) => {
     renderizarInterfaz();
 });
 
-// ABRIR FORMULARIO (Se adapta a la pestaña actual)
 document.getElementById('btnOpenModal').addEventListener('click', () => { 
     limpiarFormulario();
     document.getElementById('modalTitle').innerText = `Nueva Etiqueta (${currentTab})`;
     document.getElementById('btnSubmitForm').innerText = `AGREGAR A ${currentTab}`;
     grupoVolManual.style.display = 'none'; 
     modal.style.display = 'flex'; 
+    inputCama.focus();
 });
 document.getElementById('btnCloseModal').addEventListener('click', () => modal.style.display = 'none');
 
@@ -52,9 +59,7 @@ inputCama.addEventListener('input', () => {
     inputNombre.value = paciente ? paciente.NOMBRE : ''; 
 });
 
-// MOTOR DE SINCRONIZACIÓN A 4 SEGUNDOS (Con Seguro Anti-Colisión)
 async function fetchSyncRealTime() {
-    // Si la app está guardando, o el modal está abierto, NO interrumpir
     if (bloqueoSincronizacion || modal.style.display === 'flex') return; 
     
     try {
@@ -76,9 +81,8 @@ fetchSyncRealTime().then(() => {
     setInterval(fetchSyncRealTime, 4000); 
 });
 
-// FUNCIÓN DE GUARDADO SEGURO
 async function pushToNube() {
-    bloqueoSincronizacion = true; // Bloquea la recarga automática
+    bloqueoSincronizacion = true; 
     try {
         dbStatus.innerText = "Guardando...";
         syncIcon.style.display = 'inline-block';
@@ -93,7 +97,7 @@ async function pushToNube() {
         dbStatus.innerText = "Pendiente...";
     } finally {
         syncIcon.style.display = 'none';
-        bloqueoSincronizacion = false; // Libera el programa
+        bloqueoSincronizacion = false; 
     }
 }
 
@@ -108,7 +112,6 @@ function calcularServicio(cama) {
     return "URGENCIAS";
 }
 
-// MATEMÁTICAS PROTEGIDAS CONTRA NULL / ZERO
 function calcularVolMed(dosis, presentacion) {
     if (!presentacion || isNaN(presentacion) || Number(presentacion) === 0) return "";
     let calculo = dosis / Number(presentacion);
@@ -123,18 +126,17 @@ function calcularVolFinal(dosis, concentracion, diluyente) {
     return Math.ceil(division / 5.0) * 5;
 }
 
-// GUARDAR / ACTUALIZAR
 form.addEventListener('submit', function(e) {
     e.preventDefault();
-    bloqueoSincronizacion = true; // Congela la pantalla mientras piensas
+    bloqueoSincronizacion = true; 
 
     const idActual = inputId.value;
-    const tipo = currentTab; // Se guarda en la pestaña actual
+    const tipo = currentTab; 
     const cama = inputCama.value;
     const nombre = inputNombre.value.toUpperCase();
     let nombreMedInput = inputMed.value.toUpperCase().trim();
     const dosis = parseFloat(inputDosis.value);
-    const horario = inputHorario.value.toUpperCase() || ""; // Ya es opcional
+    const horario = inputHorario.value.toUpperCase() || ""; 
     const volFinalManualStr = inputVolFinalManual.value;
 
     let configMed = dbMedicamentos.find(m => String(m.MEDICAMENTO).toUpperCase() === nombreMedInput);
@@ -144,7 +146,7 @@ form.addEventListener('submit', function(e) {
         if (configMed) nombreMedInput = configMed.MEDICAMENTO; 
         else {
             bloqueoSincronizacion = false;
-            return alert("Medicamento no encontrado.");
+            return alert("Medicamento no encontrado en la base de datos.");
         }
     }
 
@@ -190,13 +192,12 @@ function limpiarFormulario() {
     inputMed.value = ''; inputDosis.value = ''; inputHorario.value = ''; inputVolFinalManual.value = '';
 }
 
-// DELEGACIÓN: EDITAR Y TRASLADAR (Con Seguro Anti-Colisión)
 document.getElementById('listaPacientes').addEventListener('click', (e) => {
     const btnEdit = e.target.closest('.btn-edit');
     const btnSwap = e.target.closest('.btn-swap');
 
     if (btnEdit) {
-        bloqueoSincronizacion = true; // Bloquea mientras editas
+        bloqueoSincronizacion = true; 
         const idToEdit = btnEdit.dataset.id;
         const etiqueta = etiquetasPendientes.find(et => et.id === idToEdit);
         if (etiqueta) {
@@ -234,14 +235,14 @@ document.getElementById('btnEliminarSeleccionados').addEventListener('click', ()
     const checkboxes = document.querySelectorAll('.med-checkbox:checked');
     if(checkboxes.length === 0) return alert("Selecciona etiquetas con las casillas.");
     
-    bloqueoSincronizacion = true; // Bloquea
+    bloqueoSincronizacion = true; 
     if(confirm(`¿Eliminar ${checkboxes.length} etiquetas?`)) {
         const idsToDelete = Array.from(checkboxes).map(cb => cb.dataset.id);
         etiquetasPendientes = etiquetasPendientes.filter(e => !idsToDelete.includes(e.id));
         renderizarInterfaz();
         pushToNube();
     } else {
-        bloqueoSincronizacion = false; // Libera si canceló
+        bloqueoSincronizacion = false; 
     }
 });
 
@@ -249,7 +250,6 @@ function renderizarInterfaz() {
     const panelServicios = document.getElementById('listaServicios');
     const panelPacientes = document.getElementById('listaPacientes');
     
-    // FILTRAR POR LA PESTAÑA ACTUAL
     const listaVisiblePestaña = etiquetasPendientes.filter(e => (e.TIPO || "DIARIA") === currentTab);
 
     if (listaVisiblePestaña.length === 0) {
@@ -275,7 +275,6 @@ function renderizarInterfaz() {
     });
     panelServicios.innerHTML = htmlServicios;
 
-    // FILTRAR POR SERVICIO 
     const listaFinalVista = currentServicio === 'TODOS' ? listaVisiblePestaña : listaVisiblePestaña.filter(e => e.SERVICIO === currentServicio);
 
     if(listaFinalVista.length === 0) {
@@ -311,7 +310,6 @@ function renderizarInterfaz() {
             pacientes[pacienteStr].forEach(med => {
                 const iconSwap = currentTab === "DIARIA" ? "arrow_forward" : "arrow_back";
                 const titleSwap = currentTab === "DIARIA" ? "Mover a PRN" : "Mover a DIARIA";
-                const vFinalStr = med['VOL FINAL'] !== "" && med['VOL FINAL'] !== null ? `${med['VOL FINAL']} ml` : '';
 
                 htmlPacientes += `
                     <tr>
@@ -319,7 +317,7 @@ function renderizarInterfaz() {
                         <td class="med-name">${med.MEDICAMENTO} <span style="font-size:10px; color:#9aa0a6;">(${med.VIA || 'IV'})</span></td>
                         <td>${med.DOSIS} <span style="font-size:11px; color:#5f6368;">${med.UNIDADES || "MG"}</span></td>
                         <td>${med.HORARIO}</td>
-                        <td class="med-vol">${vFinalStr}</td>
+                        <td class="med-vol">${med['VOL FINAL']} ml</td>
                         <td class="actions-cell">
                             <button class="btn-swap" data-id="${med.id}" title="${titleSwap}"><i class="material-icons" style="font-size:18px;">${iconSwap}</i></button>
                             <button class="btn-edit" data-id="${med.id}" title="Editar"><i class="material-icons" style="font-size:18px;">edit</i></button>
@@ -340,7 +338,6 @@ function obtenerEtiquetasVista() {
     });
 }
 
-// IMPRIMIR NATIVO (LIMPIO DE NULLS)
 document.getElementById('btnImprimir').addEventListener('click', () => {
     const aImprimir = obtenerEtiquetasVista();
     if (aImprimir.length === 0) return alert("No hay etiquetas en esta vista para imprimir.");
@@ -355,16 +352,16 @@ document.getElementById('btnImprimir').addEventListener('click', () => {
         for (let j = 0; j < 4; j++) {
             if (i + j < aImprimir.length) {
                 let etiq = aImprimir[i + j];
-                let tituloMed = etiq.TIPO === "PRN" ? `<span class="prn-mark">PRN</span> ${etiq.MEDICAMENTO}` : etiq.MEDICAMENTO;
                 
-                // Formateo estricto para evitar nulls
+                let tituloMed = etiq.MEDICAMENTO;
                 let unidad = (etiq.UNIDADES && etiq.UNIDADES !== "null") ? etiq.UNIDADES : "";
                 let via = (etiq.VIA && etiq.VIA !== "null") ? etiq.VIA : "";
                 let tiempo = (etiq.TIEMPO && etiq.TIEMPO !== "null" && etiq.TIEMPO !== "") ? `P/${etiq.TIEMPO}` : "";
                 let solucion = (etiq.SOLUCION && etiq.SOLUCION !== "null") ? etiq.SOLUCION : "";
-                let horario = (etiq.HORARIO && etiq.HORARIO !== "null") ? etiq.HORARIO : "";
+                
+                let horarioTexto = (etiq.HORARIO && etiq.HORARIO !== "null") ? etiq.HORARIO : "";
                 let volMed = (etiq["VOL MED"] && String(etiq["VOL MED"]) !== "0" && etiq["VOL MED"] !== "null") ? ` - ${etiq["VOL MED"]}${solucion ? " ML" : ""}` : "";
-                let volFinal = (etiq["VOL FINAL"] && etiq["VOL FINAL"] !== "null" && etiq["VOL FINAL"] !== "") ? `VOL. FINAL: ${etiq['VOL FINAL']} ML` : "";
+                let volFinal = (etiq["VOL FINAL"] && etiq["VOL FINAL"] !== "null" && etiq["VOL FINAL"] !== "") ? `VOL. FINAL: ${etiq['VOL FINAL']} ML` : "VOL. FINAL: ";
                 
                 tableHTML += `
                 <td>
@@ -374,7 +371,7 @@ document.getElementById('btnImprimir').addEventListener('click', () => {
                         <p>FECHA: ${fechaStr} &nbsp;&nbsp; ${NOMBRE_QUIMICO}</p>
                         <p class="bold">${tituloMed} ${etiq.DOSIS} ${unidad}${volMed} ${via} ${tiempo}</p>
                         <p>${solucion}</p>
-                        <p class="bold">${volFinal} &nbsp;&nbsp; ${horario ? 'HR: '+horario : ''}</p>
+                        <p class="bold">${volFinal} &nbsp;&nbsp; HR: ${horarioTexto}</p>
                     </div>
                 </td>`;
             } else {
@@ -389,8 +386,10 @@ document.getElementById('btnImprimir').addEventListener('click', () => {
     window.print();
 });
 
-// GENERAR DOCUMENTO DRIVE
 document.getElementById('btnGuardar').addEventListener('click', async () => {
+    // Si el usuario llega a burlar el estilo css, esta validación de seguridad lo bloquea
+    if (currentTab === "PRN") return alert("Las dosis PRN no se guardan en Drive.");
+
     const aGuardar = obtenerEtiquetasVista();
     if (aGuardar.length === 0) return alert("No hay etiquetas en esta vista.");
     
