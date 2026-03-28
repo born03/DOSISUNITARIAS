@@ -4,6 +4,10 @@ let etiquetasPendientes = [];
 let dbMedicamentos = [];
 const NOMBRE_QUIMICO = "E. RICARDO L."; 
 
+// ESTADO DE LA VISTA
+let currentTab = "DIARIA"; 
+let currentServicio = "TODOS";
+
 const modal = document.getElementById('modalForm');
 const form = document.getElementById('etiquetaForm');
 const inputId = document.getElementById('etiquetaId');
@@ -17,14 +21,26 @@ const grupoVolManual = document.getElementById('grupoVolManual');
 const syncIcon = document.getElementById('syncIcon');
 const dbStatus = document.getElementById('dbStatus');
 
+// ESCUCHADORES DE PESTAÑAS Y SERVICIOS (Custom Events)
+document.addEventListener('cambioTab', (e) => {
+    currentTab = e.detail;
+    document.getElementById('tabDiaria').className = currentTab === 'DIARIA' ? 'tab-btn active' : 'tab-btn';
+    document.getElementById('tabPrn').className = currentTab === 'PRN' ? 'tab-btn active-prn' : 'tab-btn';
+    currentServicio = "TODOS"; // Reiniciar filtro al cambiar de pestaña
+    renderizarInterfaz();
+});
+
+document.addEventListener('cambioServicio', (e) => {
+    currentServicio = e.detail;
+    renderizarInterfaz();
+});
+
 document.getElementById('btnOpenModal').addEventListener('click', () => { 
     limpiarFormulario();
     document.getElementById('modalTitle').innerText = "Nueva Etiqueta";
-    document.getElementById('btnSubmitForm').innerText = "AGREGAR ETIQUETA";
-    document.getElementById('tipoDiaria').checked = true;
+    document.getElementById('btnSubmitForm').innerText = "AGREGAR A " + currentTab;
     grupoVolManual.style.display = 'none'; 
     modal.style.display = 'flex'; 
-    inputCama.focus(); 
 });
 document.getElementById('btnCloseModal').addEventListener('click', () => modal.style.display = 'none');
 
@@ -33,10 +49,10 @@ inputCama.addEventListener('input', () => {
     inputNombre.value = paciente ? paciente.NOMBRE : ''; 
 });
 
-// MOTOR DE SINCRONIZACIÓN EN TIEMPO REAL (Short-Polling cada 8 segundos)
+// MOTOR DE SINCRONIZACIÓN A 4 SEGUNDOS
 let isSyncing = false;
 async function fetchSyncRealTime() {
-    if (isSyncing || modal.style.display === 'flex') return; // Pausa si estás editando
+    if (isSyncing || modal.style.display === 'flex') return; 
     try {
         const response = await fetch(URL_APPS_SCRIPT);
         const data = await response.json();
@@ -44,7 +60,6 @@ async function fetchSyncRealTime() {
         dbMedicamentos = data.medicamentos || [];
         const datosNube = data.activas || [];
         
-        // Compara si hubo cambios en la nube hechos por otros celulares
         if(JSON.stringify(datosNube) !== JSON.stringify(etiquetasPendientes)) {
             etiquetasPendientes = datosNube;
             renderizarInterfaz(); 
@@ -54,12 +69,10 @@ async function fetchSyncRealTime() {
         dbStatus.innerText = "Offline";
     }
 }
-// Ejecutar una vez al inicio, luego arrancar el reloj interno
 fetchSyncRealTime().then(() => {
-    setInterval(fetchSyncRealTime, 8000); // 8000 ms = 8 segundos
+    setInterval(fetchSyncRealTime, 4000); // ACTUALIZACIÓN CADA 4 SEGUNDOS
 });
 
-// Guardar mis cambios en la nube
 async function pushToNube() {
     isSyncing = true;
     try {
@@ -67,7 +80,7 @@ async function pushToNube() {
         syncIcon.style.display = 'inline-block';
         await fetch(URL_APPS_SCRIPT, {
             method: 'POST',
-            body: JSON.stringify({ action: "SYNC", datos: etiquetasPendientes }),
+            body: JSON.stringify({ action: "SYNC", datos: etiquetasPendientes }), // Siempre manda todo
             mode: 'no-cors', 
             headers: { 'Content-Type': 'text/plain;charset=utf-8' }
         });
@@ -107,12 +120,12 @@ form.addEventListener('submit', function(e) {
     e.preventDefault();
 
     const idActual = inputId.value;
-    const tipo = document.querySelector('input[name="tipoDosis"]:checked').value;
+    const tipo = currentTab; // Siempre guarda en la pestaña actual
     const cama = inputCama.value;
     const nombre = inputNombre.value.toUpperCase();
     let nombreMedInput = inputMed.value.toUpperCase().trim();
     const dosis = parseFloat(inputDosis.value);
-    const horario = inputHorario.value.toUpperCase();
+    const horario = inputHorario.value.toUpperCase() || "N/A"; // Si lo deja blanco, pone N/A
     const volFinalManualStr = inputVolFinalManual.value;
 
     let configMed = dbMedicamentos.find(m => String(m.MEDICAMENTO).toUpperCase() === nombreMedInput);
@@ -120,7 +133,7 @@ form.addEventListener('submit', function(e) {
         configMed = dbMedicamentos.find(m => String(m.MEDICAMENTO).toUpperCase().startsWith(nombreMedInput));
         if (!configMed) configMed = dbMedicamentos.find(m => String(m.MEDICAMENTO).toUpperCase().includes(nombreMedInput));
         if (configMed) nombreMedInput = configMed.MEDICAMENTO; 
-        else return alert("Medicamento no encontrado en la base de datos.");
+        else return alert("Medicamento no encontrado.");
     }
 
     const volFinalDefinitivo = volFinalManualStr !== "" ? parseFloat(volFinalManualStr) : calcularVolFinal(dosis, configMed.CONCENTRACION, configMed.DILUYENTE);
@@ -153,40 +166,64 @@ form.addEventListener('submit', function(e) {
     } else {
         etiquetasPendientes.push(etiquetaObj);
         inputMed.value = ''; inputDosis.value = ''; inputHorario.value = '';
+        
+        // Bloquear inputs temporalmente para resetear hack de móvil
+        inputMed.setAttribute('readonly', true);
+        inputDosis.setAttribute('readonly', true);
+        inputHorario.setAttribute('readonly', true);
+        
         inputMed.focus(); 
     }
 
     renderizarInterfaz(); 
-    pushToNube(); // Fuerza la actualización a Google Sheets
+    pushToNube(); 
 });
 
 function limpiarFormulario() {
     inputId.value = ''; inputCama.value = ''; inputNombre.value = '';
     inputMed.value = ''; inputDosis.value = ''; inputHorario.value = ''; inputVolFinalManual.value = '';
+    // Restablecer el bloqueo de readonly para el hack
+    document.querySelectorAll('#etiquetaForm input').forEach(i => i.setAttribute('readonly', true));
 }
 
+// DELEGACIÓN: EDITAR Y TRASLADAR
 document.getElementById('listaPacientes').addEventListener('click', (e) => {
     const btnEdit = e.target.closest('.btn-edit');
+    const btnSwap = e.target.closest('.btn-swap');
+
     if (btnEdit) {
         const idToEdit = btnEdit.dataset.id;
         const etiqueta = etiquetasPendientes.find(et => et.id === idToEdit);
         if (etiqueta) {
             inputId.value = etiqueta.id;
-            document.querySelector(`input[name="tipoDosis"][value="${etiqueta.TIPO || 'DIARIA'}"]`).checked = true;
             inputCama.value = etiqueta.CAMA;
             inputNombre.value = etiqueta.NOMBRE;
             inputMed.value = etiqueta.MEDICAMENTO;
             inputDosis.value = etiqueta.DOSIS;
-            inputHorario.value = etiqueta.HORARIO;
+            inputHorario.value = etiqueta.HORARIO === "N/A" ? "" : etiqueta.HORARIO;
             
             const configMed = dbMedicamentos.find(m => String(m.MEDICAMENTO).toUpperCase() === etiqueta.MEDICAMENTO);
             const calcVol = configMed ? calcularVolFinal(etiqueta.DOSIS, configMed.CONCENTRACION, configMed.DILUYENTE) : "";
             inputVolFinalManual.value = (String(etiqueta["VOL FINAL"]) !== String(calcVol)) ? etiqueta["VOL FINAL"] : '';
 
+            // Quitar el readonly al editar
+            document.querySelectorAll('#etiquetaForm input').forEach(i => i.removeAttribute('readonly'));
+
             document.getElementById('modalTitle').innerText = "Editar Etiqueta";
             document.getElementById('btnSubmitForm').innerText = "ACTUALIZAR CAMBIOS";
             grupoVolManual.style.display = 'block'; 
             modal.style.display = 'flex';
+        }
+    }
+
+    if (btnSwap) {
+        const idToSwap = btnSwap.dataset.id;
+        const index = etiquetasPendientes.findIndex(et => et.id === idToSwap);
+        if (index > -1) {
+            const nuevoTipo = etiquetasPendientes[index].TIPO === "DIARIA" ? "PRN" : "DIARIA";
+            etiquetasPendientes[index].TIPO = nuevoTipo;
+            renderizarInterfaz();
+            pushToNube();
         }
     }
 });
@@ -206,87 +243,113 @@ function renderizarInterfaz() {
     const panelServicios = document.getElementById('listaServicios');
     const panelPacientes = document.getElementById('listaPacientes');
     
-    if (etiquetasPendientes.length === 0) {
-        panelServicios.innerHTML = '<div style="color: #9aa0a6; text-align: center; margin-top: 20px;">Sin pacientes aún</div>';
-        panelPacientes.innerHTML = '<div class="empty-state"><i class="material-icons" style="font-size: 48px; color: #dadce0;">assignment</i><br>Comienza agregando etiquetas</div>';
+    // FILTRAR PRIMERO POR LA PESTAÑA ACTUAL
+    const listaVisiblePestaña = etiquetasPendientes.filter(e => (e.TIPO || "DIARIA") === currentTab);
+
+    if (listaVisiblePestaña.length === 0) {
+        panelServicios.innerHTML = '<div style="color: #9aa0a6; text-align: center; margin-top: 20px;">Sin pacientes</div>';
+        panelPacientes.innerHTML = '<div class="empty-state"><i class="material-icons" style="font-size: 48px; color: #dadce0;">assignment</i><br>No hay etiquetas aquí</div>';
         return;
     }
 
+    // CONSTRUIR BARRA DE SERVICIOS (Basado solo en la pestaña actual)
     const conteoServicios = {};
-    const grupos = { "DIARIA": {}, "PRN": {} };
-
-    etiquetasPendientes.forEach(etiq => {
+    listaVisiblePestaña.forEach(etiq => {
         conteoServicios[etiq.SERVICIO] = (conteoServicios[etiq.SERVICIO] || 0) + 1;
-        const tipo = etiq.TIPO || "DIARIA";
-        const llavePaciente = `Cama ${etiq.CAMA} - ${etiq.NOMBRE}`;
-        
-        if (!grupos[tipo][etiq.SERVICIO]) grupos[tipo][etiq.SERVICIO] = {};
-        if (!grupos[tipo][etiq.SERVICIO][llavePaciente]) grupos[tipo][etiq.SERVICIO][llavePaciente] = [];
-        grupos[tipo][etiq.SERVICIO][llavePaciente].push(etiq);
     });
 
-    panelServicios.innerHTML = Object.keys(conteoServicios).sort().map(srv => 
-        `<div class="servicio-item"><span>${srv}</span> <span class="badge">${conteoServicios[srv]}</span></div>`
-    ).join('');
+    let htmlServicios = `<div class="servicio-item ${currentServicio === 'TODOS' ? 'active' : ''}" onclick="cambiarServicio('TODOS')">
+                            <span>TODOS</span> <span class="badge">${listaVisiblePestaña.length}</span>
+                         </div>`;
+                         
+    Object.keys(conteoServicios).sort().forEach(srv => {
+        const activeClass = currentServicio === srv ? 'active' : '';
+        htmlServicios += `<div class="servicio-item ${activeClass}" onclick="cambiarServicio('${srv}')">
+                            <span>${srv}</span> <span class="badge">${conteoServicios[srv]}</span>
+                          </div>`;
+    });
+    panelServicios.innerHTML = htmlServicios;
+
+    // FILTRAR POR SERVICIO SELECCIONADO PARA MOSTRAR PACIENTES
+    const listaFinalVista = currentServicio === 'TODOS' ? listaVisiblePestaña : listaVisiblePestaña.filter(e => e.SERVICIO === currentServicio);
+
+    if(listaFinalVista.length === 0) {
+        panelPacientes.innerHTML = '<div class="empty-state">No hay pacientes en este servicio.</div>';
+        return;
+    }
+
+    const gruposPacientes = {};
+    listaFinalVista.forEach(etiq => {
+        const llavePaciente = `Cama ${etiq.CAMA} - ${etiq.NOMBRE}`;
+        if (!gruposPacientes[etiq.SERVICIO]) gruposPacientes[etiq.SERVICIO] = {};
+        if (!gruposPacientes[etiq.SERVICIO][llavePaciente]) gruposPacientes[etiq.SERVICIO][llavePaciente] = [];
+        gruposPacientes[etiq.SERVICIO][llavePaciente].push(etiq);
+    });
 
     let htmlPacientes = '';
-    ["DIARIA", "PRN"].forEach(tipo => {
-        const titleColor = tipo === "PRN" ? "section-prn" : "";
-        if (Object.keys(grupos[tipo]).length > 0) {
-            htmlPacientes += `<div class="section-title ${titleColor}">DOSIS ${tipo}</div>`;
+    const headerClass = currentTab === "PRN" ? "header-prn" : "";
+
+    Object.keys(gruposPacientes).sort().forEach(servicio => {
+        const pacientes = gruposPacientes[servicio];
+        Object.keys(pacientes).sort().forEach(pacienteStr => {
+            htmlPacientes += `<div class="grupo-paciente"><div class="header-paciente ${headerClass}"><i class="material-icons">hotel</i> ${pacienteStr} (${servicio})</div>`;
+            htmlPacientes += `<div class="table-responsive"><table class="med-table">
+                                <tr>
+                                    <th style="width: 25px;"></th>
+                                    <th>MEDICAMENTO</th>
+                                    <th>DOSIS</th>
+                                    <th>HORA</th>
+                                    <th>VF</th>
+                                    <th style="text-align: right;">ACCIONES</th>
+                                </tr>`;
             
-            Object.keys(grupos[tipo]).sort().forEach(servicio => {
-                const pacientes = grupos[tipo][servicio];
-                Object.keys(pacientes).sort().forEach(pacienteStr => {
-                    const headerClass = tipo === "PRN" ? "header-prn" : "";
-                    htmlPacientes += `<div class="grupo-paciente"><div class="header-paciente ${headerClass}"><i class="material-icons">hotel</i> ${pacienteStr}</div>`;
-                    
-                    htmlPacientes += `<div class="table-responsive"><table class="med-table">
-                                        <tr>
-                                            <th style="width: 25px;"></th>
-                                            <th>MEDICAMENTO</th>
-                                            <th>DOSIS</th>
-                                            <th>HORA</th>
-                                            <th>VF</th>
-                                            <th style="width: 30px;"></th>
-                                        </tr>`;
-                    
-                    pacientes[pacienteStr].forEach(med => {
-                        // Incorporación de las Unidades y Vía a la vista UI
-                        htmlPacientes += `
-                            <tr>
-                                <td><input type="checkbox" class="med-checkbox" data-id="${med.id}"></td>
-                                <td class="med-name">${med.MEDICAMENTO} <span style="font-size:10px; color:#9aa0a6;">(${med.VIA || 'IV'})</span></td>
-                                <td>${med.DOSIS} <span style="font-size:11px; color:#5f6368;">${med.UNIDADES || "MG"}</span></td>
-                                <td>${med.HORARIO}</td>
-                                <td class="med-vol">${med['VOL FINAL']} ml</td>
-                                <td style="text-align: right;">
-                                    <button class="btn-edit" data-id="${med.id}"><i class="material-icons" style="font-size:18px;">edit</i></button>
-                                </td>
-                            </tr>`;
-                    });
-                    htmlPacientes += `</table></div></div>`;
-                });
+            pacientes[pacienteStr].forEach(med => {
+                const iconSwap = currentTab === "DIARIA" ? "arrow_forward" : "arrow_back";
+                const titleSwap = currentTab === "DIARIA" ? "Mover a PRN" : "Mover a DIARIA";
+
+                htmlPacientes += `
+                    <tr>
+                        <td><input type="checkbox" class="med-checkbox" data-id="${med.id}"></td>
+                        <td class="med-name">${med.MEDICAMENTO} <span style="font-size:10px; color:#9aa0a6;">(${med.VIA || 'IV'})</span></td>
+                        <td>${med.DOSIS} <span style="font-size:11px; color:#5f6368;">${med.UNIDADES || "MG"}</span></td>
+                        <td>${med.HORARIO}</td>
+                        <td class="med-vol">${med['VOL FINAL']} ml</td>
+                        <td class="actions-cell">
+                            <button class="btn-swap" data-id="${med.id}" title="${titleSwap}"><i class="material-icons" style="font-size:18px;">${iconSwap}</i></button>
+                            <button class="btn-edit" data-id="${med.id}" title="Editar"><i class="material-icons" style="font-size:18px;">edit</i></button>
+                        </td>
+                    </tr>`;
             });
-        }
+            htmlPacientes += `</table></div></div>`;
+        });
     });
     panelPacientes.innerHTML = htmlPacientes;
 }
 
-// IMPRIMIR NATIVO (Con Lógica de Vía y Unidades)
+// OBTENER SOLO LA VISTA ACTUAL PARA IMPRIMIR/GUARDAR
+function obtenerEtiquetasVista() {
+    return etiquetasPendientes.filter(e => {
+        const matchTab = (e.TIPO || "DIARIA") === currentTab;
+        const matchSrv = currentServicio === 'TODOS' || e.SERVICIO === currentServicio;
+        return matchTab && matchSrv;
+    });
+}
+
+// IMPRIMIR NATIVO (SOLO LA VISTA ACTUAL)
 document.getElementById('btnImprimir').addEventListener('click', () => {
-    if (etiquetasPendientes.length === 0) return alert("No hay etiquetas.");
-    const printGrid = document.getElementById('printGrid');
+    const aImprimir = obtenerEtiquetasVista();
+    if (aImprimir.length === 0) return alert("No hay etiquetas en esta vista para imprimir.");
     
+    const printGrid = document.getElementById('printGrid');
     const hoy = new Date();
     const fechaStr = `${hoy.getDate().toString().padStart(2, '0')}-${['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'][hoy.getMonth()]}-${hoy.getFullYear().toString().slice(-2)}`;
 
     let tableHTML = '<table class="print-table">';
-    for (let i = 0; i < etiquetasPendientes.length; i += 4) {
+    for (let i = 0; i < aImprimir.length; i += 4) {
         tableHTML += '<tr>';
         for (let j = 0; j < 4; j++) {
-            if (i + j < etiquetasPendientes.length) {
-                let etiq = etiquetasPendientes[i + j];
+            if (i + j < aImprimir.length) {
+                let etiq = aImprimir[i + j];
                 let tituloMed = etiq.TIPO === "PRN" ? `<span class="prn-mark">PRN</span> ${etiq.MEDICAMENTO}` : etiq.MEDICAMENTO;
                 let textoVolumen = (etiq["VOL MED"] && String(etiq["VOL MED"]) !== "0") ? ` - ${etiq["VOL MED"]}${etiq.SOLUCION ? " ML" : ""}` : "";
                 
@@ -313,9 +376,11 @@ document.getElementById('btnImprimir').addEventListener('click', () => {
     window.print();
 });
 
-// GENERAR DOCUMENTO DRIVE
+// GENERAR DOCUMENTO DRIVE (SOLO LA VISTA ACTUAL)
 document.getElementById('btnGuardar').addEventListener('click', async () => {
-    if (etiquetasPendientes.length === 0) return alert("Agrega etiquetas primero.");
+    const aGuardar = obtenerEtiquetasVista();
+    if (aGuardar.length === 0) return alert("No hay etiquetas en esta vista para generar el documento.");
+    
     const btn = document.getElementById('btnGuardar');
     btn.innerHTML = '<i class="material-icons">sync</i> GENERANDO...';
     btn.disabled = true;
@@ -323,15 +388,15 @@ document.getElementById('btnGuardar').addEventListener('click', async () => {
     try {
         await fetch(URL_APPS_SCRIPT, {
             method: 'POST',
-            body: JSON.stringify({ action: "DOC", datos: etiquetasPendientes }),
+            body: JSON.stringify({ action: "DOC", datos: aGuardar }),
             mode: 'no-cors', 
             headers: { 'Content-Type': 'text/plain;charset=utf-8' }
         });
-        alert("Documento generado en Drive.");
+        alert(`Documento generado en Drive con las etiquetas de ${currentTab} ${currentServicio !== 'TODOS' ? '('+currentServicio+')' : ''}.`);
     } catch (e) {
         alert("Error al generar en Drive.");
     } finally {
-        btn.innerHTML = '<i class="material-icons">cloud_upload</i> GENERAR EN DRIVE';
+        btn.innerHTML = '<i class="material-icons">cloud_upload</i> DRIVE VISTA';
         btn.disabled = false;
     }
 });
