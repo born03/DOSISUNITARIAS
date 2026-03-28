@@ -5,22 +5,21 @@ let dbMed = [];
 let currentTab = "DIARIA";
 let currentSrv = "TODOS";
 let bloqueoSinc = false;
-let ultimaHash = "";
+let hashActual = "";
 
-const HOY_SISTEMA = new Date(2026, 2, 28); 
-const NOMBRE_QUIMICO = "E. RICARDO L.";
+const HOY_REF = new Date(2026, 2, 28); // Referencia Marzo 2026
 
-// --- INICIO ---
 async function start() {
     await sync();
-    loopSinc();
-    attachEvents();
+    ciclo();
+    configEvents();
 }
 
-async function loopSinc() {
-    await new Promise(r => setTimeout(r, 4000));
-    await sync();
-    loopSinc();
+async function ciclo() {
+    setTimeout(async () => {
+        await sync();
+        ciclo();
+    }, 4000);
 }
 
 async function sync() {
@@ -29,43 +28,19 @@ async function sync() {
         const res = await fetch(URL_SCRIPT);
         const data = await res.json();
         dbMed = data.medicamentos || [];
-        const dataStr = JSON.stringify(data.activas);
-        if (ultimaHash !== dataStr) {
-            ultimaHash = dataStr;
+        const nuevoHash = JSON.stringify(data.activas);
+        if (hashActual !== nuevoHash) {
+            hashActual = nuevoHash;
             etiquetas = data.activas || [];
             render();
         }
-        document.getElementById('dbStatus').innerText = "SINCRO OK";
+        document.getElementById('dbStatus').innerText = "CONECTADO";
         
         const dl = document.getElementById('listaMed');
         if (dl && dl.options.length === 0) {
             dbMed.forEach(m => { let o = document.createElement('option'); o.value = m.MEDICAMENTO; dl.appendChild(o); });
         }
-    } catch (e) { document.getElementById('dbStatus').innerText = "OFFLINE"; }
-}
-
-function attachEvents() {
-    document.getElementById('tabDiaria').onclick = () => { setTab('DIARIA'); };
-    document.getElementById('tabPrn').onclick = () => { setTab('PRN'); };
-    document.getElementById('tabLotes').onclick = () => { setTab('LOTES'); };
-    document.getElementById('btnOpenModal').onclick = abrirModalEtiq;
-    document.getElementById('btnCancelEtiq').onclick = () => { document.getElementById('modalEtiq').style.display='none'; };
-    document.getElementById('btnCancelLote').onclick = () => { document.getElementById('modalLote').style.display='none'; };
-    document.getElementById('formEtiq').onsubmit = guardarEtiq;
-    document.getElementById('formLote').onsubmit = guardarLoteExcel;
-    document.getElementById('btnPrint').onclick = imprimirVista;
-    document.getElementById('btnDrive').onclick = generarDrive;
-    document.getElementById('btnSuministros').onclick = imprimirSuministros;
-    document.getElementById('btnEliminar').onclick = eliminarSeleccionados;
-}
-
-function setTab(t) {
-    currentTab = t;
-    currentSrv = "TODOS";
-    document.getElementById('tabDiaria').className = "tab-btn" + (t==='DIARIA'?' active':'');
-    document.getElementById('tabPrn').className = "tab-btn" + (t==='PRN'?' active-prn':'');
-    document.getElementById('tabLotes').className = "tab-btn" + (t==='LOTES'?' active-lotes':'');
-    render();
+    } catch (e) { document.getElementById('dbStatus').innerText = "RECONECTANDO..."; }
 }
 
 function render() {
@@ -89,25 +64,25 @@ function render() {
         srvs.map(s => `<div class="servicio-item ${currentSrv===s?'active':''}" onclick="setSrv('${s}')">${s} <span>${dataTab.filter(x=>x.SERVICIO===s).length}</span></div>`).join('');
 
     const final = currentSrv === "TODOS" ? dataTab : dataTab.filter(e => e.SERVICIO === currentSrv);
-    if (final.length === 0) { main.innerHTML = '<div class="empty-state">Sin etiquetas</div>'; return; }
+    if (final.length === 0) { main.innerHTML = '<div style="text-align:center; padding:50px; color:#999">No hay etiquetas</div>'; return; }
 
     const grupos = {};
     final.forEach(e => { const k = `Cama ${e.CAMA} - ${e.NOMBRE}`; if(!grupos[k]) grupos[k] = []; grupos[k].push(e); });
 
     main.innerHTML = Object.keys(grupos).sort().map(p => `
         <div class="grupo-paciente">
-            <div class="header-paciente" style="border-color:${currentTab==='PRN'?'#e53935':'#1a73e8'}">${p}</div>
+            <div class="header-paciente" style="border-bottom-color:${currentTab==='PRN'?'#e53935':'#1a73e8'}">${p}</div>
             <div class="table-responsive"><table class="med-table">
-                <thead><tr><th></th><th>MEDICAMENTO</th><th>DOSIS</th><th>HR</th><th>VF</th><th></th></tr></thead>
+                <thead><tr><th style="width:30px"></th><th>MEDICAMENTO</th><th>DOSIS</th><th>HORA</th><th>VF</th><th style="text-align:right"></th></tr></thead>
                 <tbody>${grupos[p].map(m => `
                     <tr>
                         <td><input type="checkbox" class="cb" data-id="${m.id}"></td>
-                        <td><b>${m.MEDICAMENTO}</b></td>
+                        <td><b>${m.MEDICAMENTO}</b> <br> <small style="color:#888">${m.VIA}</small></td>
                         <td>${m.DOSIS} ${m.UNIDADES}</td>
                         <td>${m.HORARIO}</td><td>${m['VOL FINAL']}ml</td>
-                        <td style="white-space:nowrap">
-                            <button onclick="mover('${m.id}')" style="border:none;background:none;cursor:pointer;"><i class="material-icons" style="font-size:18px">swap_horiz</i></button>
-                            <button onclick="editEtiq('${m.id}')" style="border:none;background:none;cursor:pointer;"><i class="material-icons" style="font-size:18px">edit</i></button>
+                        <td style="text-align:right; white-space:nowrap">
+                            <button class="btn-row" onclick="mover('${m.id}')"><i class="material-icons" style="font-size:20px">swap_horiz</i></button>
+                            <button class="btn-row" onclick="editarEtiq('${m.id}')"><i class="material-icons" style="font-size:20px">edit</i></button>
                         </td>
                     </tr>`).join('')}</tbody>
             </table></div>
@@ -116,8 +91,10 @@ function render() {
 
 function renderLotes() {
     const main = document.getElementById('mainContent');
-    main.innerHTML = `<div style="background:white;padding:15px;border-radius:8px;margin-bottom:10px;"><input type="text" id="busqLote" placeholder="Buscar medicamento..." style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;"></div><div id="contLotes"></div>`;
-    document.getElementById('busqLote').oninput = (e) => { filterLotes(e.target.value); };
+    main.innerHTML = `<div style="background:white;padding:15px;border-radius:8px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,0.1)">
+        <input type="text" id="busqLote" placeholder="Buscar medicamento..." style="width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;font-size:16px;">
+    </div><div id="contLotes"></div>`;
+    document.getElementById('busqLote').addEventListener('input', e => filterLotes(e.target.value));
     filterLotes('');
 }
 
@@ -128,29 +105,61 @@ function filterLotes(v) {
         const cad = estaCaducado(m.CADUCIDAD);
         return `<div class="lote-list-item ${cad?'expired':''}">
             <div style="flex:1">
-                <div style="font-weight:bold;">${m.MEDICAMENTO}</div>
-                <div style="font-size:11px;color:#666">LOTE: ${m.LOTE} | <span class="${cad?'expired-text':''}">CAD: ${m.CADUCIDAD}</span></div>
+                <div style="font-weight:bold; font-size:14px;">${m.MEDICAMENTO}</div>
+                <div style="font-size:12px; color:#666; margin-top:3px;">LOTE: ${m.LOTE || '---'} | <span class="${cad?'expired-text':''}">CAD: ${m.CADUCIDAD || '---'}</span></div>
             </div>
-            <button onclick="abrirModalLote('${m.MEDICAMENTO}')" style="background:#e8f5e9;border:none;color:#34a853;padding:8px;border-radius:6px;font-weight:bold;cursor:pointer;">EDITAR</button>
+            <button onclick="abrirModalLote('${m.MEDICAMENTO}')" style="background:#e8f5e9;border:none;color:#34a853;padding:10px 15px;border-radius:8px;font-weight:bold;cursor:pointer;">EDITAR</button>
         </div>`;
     }).join('');
 }
 
 function estaCaducado(s) {
-    if(!s || s==="null") return false;
+    if(!s || s==="" || s==="null") return false;
     const p = s.split('-'); if(p.length<2) return false;
-    return new Date(p[0], p[1]-1, 1) < new Date(HOY_SISTEMA.getFullYear(), HOY_SISTEMA.getMonth(), 1);
+    return new Date(p[0], p[1]-1, 1) < new Date(HOY_REF.getFullYear(), HOY_REF.getMonth(), 1);
 }
 
-// --- ACCIONES GLOBALES ---
+// --- LOGICA DE CAMA Y PACIENTE (MEMORIA) ---
+document.getElementById('in_cama').addEventListener('input', e => {
+    const v = e.target.value;
+    const existe = etiquetas.find(et => et.CAMA === v);
+    if(existe) document.getElementById('in_nombre').value = existe.NOMBRE;
+});
+
+function configEvents() {
+    document.getElementById('tabDiaria').onclick = () => setTab('DIARIA');
+    document.getElementById('tabPrn').onclick = () => setTab('PRN');
+    document.getElementById('tabLotes').onclick = () => setTab('LOTES');
+    document.getElementById('btnOpenModal').onclick = abrirModalEtiq;
+    document.getElementById('btnCancelEtiq').onclick = () => document.getElementById('modalEtiq').style.display='none';
+    document.getElementById('btnCancelLote').onclick = () => document.getElementById('modalLote').style.display='none';
+    document.getElementById('formEtiq').onsubmit = guardarEtiq;
+    document.getElementById('formLote').onsubmit = guardarLoteExcel;
+    document.getElementById('btnPrint').onclick = imprimirVista;
+    document.getElementById('btnDrive').onclick = generarDrive;
+    document.getElementById('btnSuministros').onclick = imprimirSuministros;
+    document.getElementById('btnEliminar').onclick = eliminarSeleccionados;
+}
+
+function setTab(t) {
+    currentTab = t; currentSrv = "TODOS";
+    document.getElementById('tabDiaria').className = "tab-btn" + (t==='DIARIA'?' active':'');
+    document.getElementById('tabPrn').className = "tab-btn" + (t==='PRN'?' active-prn':'');
+    document.getElementById('tabLotes').className = "tab-btn" + (t==='LOTES'?' active-lotes':'');
+    render();
+}
+
 window.setSrv = (s) => { currentSrv = s; render(); };
 
-window.mover = async (id) => {
-    const i = etiquetas.findIndex(x=>x.id===id);
-    if(i>-1) { etiquetas[i].TIPO = etiquetas[i].TIPO === "DIARIA" ? "PRN" : "DIARIA"; render(); await push(); }
-};
+function abrirModalEtiq() {
+    document.getElementById('etiqId').value = '';
+    document.getElementById('formEtiq').reset();
+    document.getElementById('modalTitle').innerText = "Nueva Etiqueta - " + currentTab;
+    document.getElementById('divVF').style.display = 'none';
+    document.getElementById('modalEtiq').style.display = 'flex';
+}
 
-window.editEtiq = (id) => {
+window.editarEtiq = (id) => {
     const e = etiquetas.find(x=>x.id===id);
     if(e) {
         document.getElementById('etiqId').value = e.id;
@@ -160,42 +169,25 @@ window.editEtiq = (id) => {
         document.getElementById('in_dosis').value = e.DOSIS;
         document.getElementById('in_horario').value = e.HORARIO;
         document.getElementById('in_vf').value = e["VOL FINAL"];
+        document.getElementById('modalTitle').innerText = "Editar Etiqueta";
         document.getElementById('divVF').style.display = 'block';
         document.getElementById('modalEtiq').style.display = 'flex';
     }
-};
-
-function abrirModalEtiq() {
-    document.getElementById('etiqId').value = '';
-    document.getElementById('formEtiq').reset();
-    document.getElementById('divVF').style.display = 'none';
-    document.getElementById('modalEtiq').style.display = 'flex';
 }
-
-window.abrirModalLote = (nom) => {
-    const m = dbMed.find(x => x.MEDICAMENTO === nom);
-    if(!m) return;
-    document.getElementById('loteMedId').value = nom;
-    document.getElementById('loteMedTitle').innerText = nom;
-    document.getElementById('in_denom').value = m.DENOMINACION || "";
-    document.getElementById('in_lote').value = m.LOTE || "";
-    document.getElementById('in_cad').value = m.CADUCIDAD || "";
-    document.getElementById('in_lab').value = m.LABORATORIO || "";
-    document.getElementById('modalLote').style.display = 'flex';
-};
 
 async function guardarEtiq(ev) {
     ev.preventDefault();
     const med = document.getElementById('in_med').value.toUpperCase().trim();
     const conf = dbMed.find(m => m.MEDICAMENTO === med);
-    if(!conf) return alert("Medicamento no existe");
+    if(!conf) return alert("Medicamento no existe en base.");
 
     const dosis = parseFloat(document.getElementById('in_dosis').value);
     const id = document.getElementById('etiqId').value || Math.random().toString(36).substr(2, 9);
     
     const obj = {
-        id, TIPO: currentTab, CAMA: document.getElementById('in_cama').value,
-        NOMBRE: document.getElementById('in_nombre').value.toUpperCase(),
+        id, TIPO: currentTab, 
+        CAMA: document.getElementById('in_cama').value,
+        NOMBRE: document.getElementById('in_nombre').value.toUpperCase().trim(),
         MEDICAMENTO: conf.MEDICAMENTO, DOSIS: dosis, HORARIO: document.getElementById('in_horario').value,
         SERVICIO: calcularSrv(document.getElementById('in_cama').value),
         "VOL MED": calcVM(dosis, conf.PRESENTACION),
@@ -208,11 +200,24 @@ async function guardarEtiq(ev) {
     if(idx>-1) {
         const oC = etiquetas[idx].CAMA, oN = etiquetas[idx].NOMBRE;
         etiquetas[idx] = obj;
+        // LOGICA DOMINO
         etiquetas.forEach(eti => { if(eti.CAMA===oC && eti.NOMBRE===oN){ eti.CAMA=obj.CAMA; eti.NOMBRE=obj.NOMBRE; eti.SERVICIO=obj.SERVICIO; }});
     } else etiquetas.push(obj);
 
     document.getElementById('modalEtiq').style.display = 'none';
     render(); await push();
+}
+
+window.abrirModalLote = (nom) => {
+    const m = dbMed.find(x => x.MEDICAMENTO === nom);
+    if(!m) return;
+    document.getElementById('loteMedId').value = nom;
+    document.getElementById('loteMedTitle').innerText = nom;
+    document.getElementById('in_denom').value = m.DENOMINACION;
+    document.getElementById('in_lote').value = m.LOTE;
+    document.getElementById('in_cad').value = m.CADUCIDAD;
+    document.getElementById('in_lab').value = m.LABORATORIO;
+    document.getElementById('modalLote').style.display = 'flex';
 }
 
 async function guardarLoteExcel(e) {
@@ -223,33 +228,65 @@ async function guardarLoteExcel(e) {
     m.CADUCIDAD = document.getElementById('in_cad').value;
     m.LABORATORIO = document.getElementById('in_lab').value.toUpperCase();
     
+    document.getElementById('dbStatus').innerText = "GUARDANDO...";
     bloqueoSinc = true;
     await fetch(URL_SCRIPT, { method: 'POST', body: JSON.stringify({action: "UPDATE_CONFIG", datos: [m]}), mode: 'no-cors'});
     document.getElementById('modalLote').style.display = 'none';
-    bloqueoSinc = false; filterLotes('');
+    bloqueoSinc = false; render();
 }
 
-async function push() {
-    bloqueoSinc = true;
-    try { await fetch(URL_SCRIPT, { method: 'POST', body: JSON.stringify({action: "SYNC", datos: etiquetas}), mode: 'no-cors'}); }
-    finally { bloqueoSinc = false; }
+// --- LOGICA JERINGAS ---
+function imprimirSuministros() {
+    const data = etiquetas.filter(e => e.TIPO === currentTab);
+    if(data.length === 0) return alert("No hay datos");
+    const cons = {}, jeringas = {"JERINGA DE INSULINA":0,"JERINGA DE 3 ML":0,"JERINGA DE 5 ML":0,"JERINGA DE 10 ML":0,"JERINGA DE 20 ML":0};
+    const scList = ['ERITROPOYETINA', 'FILGRASTIM', 'PEG-FILGRASTIM', 'ENOXAPARINA'];
+    let hasExpired = false;
+
+    data.forEach(e => {
+        cons[e.MEDICAMENTO] = (cons[e.MEDICAMENTO] || 0) + parseFloat(e.DOSIS);
+        const vMed = parseFloat(e["VOL MED"]) || 0, vFin = parseFloat(e["VOL FINAL"]) || 0;
+        if (scList.some(k => e.MEDICAMENTO.includes(k)) && vFin <= 1) jeringas["JERINGA DE INSULINA"]++;
+        else {
+            let vRef = (vFin <= 10) ? vFin : (vMed > 0 ? vMed : vFin);
+            let rest = vRef;
+            while(rest > 20){ jeringas["JERINGA DE 20 ML"]++; rest -= 20; }
+            if(rest > 10) jeringas["JERINGA DE 20 ML"]++;
+            else if(rest > 5) jeringas["JERINGA DE 10 ML"]++;
+            else if(rest > 3) jeringas["JERINGA DE 5 ML"]++;
+            else if(rest > 0) jeringas["JERINGA DE 3 ML"]++;
+        }
+    });
+
+    const hoy = new Date();
+    let html = `<h2 style="text-align:center">SUMINISTROS - ${currentTab}</h2><p style="text-align:center">${hoy.toLocaleString()}</p>`;
+    html += `<table class="supply-table"><tr><th>MEDICAMENTO</th><th>TOTAL</th><th>DENOMINACIÓN</th><th>LOTE</th><th>CAD</th><th>LAB</th></tr>`;
+    Object.keys(cons).sort().forEach(m => {
+        const info = dbMed.find(x => x.MEDICAMENTO === m) || {};
+        const isExp = estaCaducado(info.CADUCIDAD); if(isExp) hasExpired = true;
+        html += `<tr class="${isExp?'expired-row':''}"><td>${m}</td><td><b>${Math.round(cons[m]*100)/100}</b></td><td>${info.DENOMINACION||''}</td><td>${info.LOTE||''}</td><td>${isExp?'• ':''}${info.CADUCIDAD||''}</td><td>${info.LABORATORIO||''}</td></tr>`;
+    });
+    html += '</table><h3>JERINGAS</h3><table class="supply-table" style="width:50%"><tr><th>TIPO</th><th>PIEZAS</th></tr>';
+    for(let t in jeringas) if(jeringas[t]>0) html += `<tr><td>${t}</td><td><b>${jeringas[t]}</b></td></tr>`;
+    html += '</table>';
+
+    if(hasExpired) alert("¡ALERTA! HAY MEDICAMENTOS CADUCADOS EN EL REPORTE.");
+    document.getElementById('printSupplies').innerHTML = html;
+    window.print();
 }
 
-function calcVM(d, p) { let res = d/parseFloat(p); return isNaN(res)?0:(res<0.1?Math.round(res*100)/100:Math.round(res*10)/10); }
+// --- AUXILIARES ---
+async function push() { bloqueoSinc = true; await fetch(URL_SCRIPT, { method: 'POST', body: JSON.stringify({action: "SYNC", datos: etiquetas}), mode: 'no-cors'}); bloqueoSinc = false; }
+function calcVM(d, p) { let r = d/parseFloat(p); return isNaN(r)?0:(r<0.1?Math.round(r*100)/100:Math.round(r*10)/10); }
 function calcVF(d, c, l) { let v = d/parseFloat(c); if(!l || l.trim()==="") return v; return v<=1?1:(v<=3?3:Math.ceil(v/5)*5); }
-function calcularSrv(c) { 
-    const n = Number(c); 
-    if(n>=220 && n<=245) return "ONCO"; if(n>=501 && n<=521) return "INFECTO";
-    if(n>=522 && n<=535) return "CIRUGIA"; if(n>=536 && n<=542) return "GASTRO";
-    if(n>=543 && n<=549) return "TRAUMA"; if(n>=550 && n<=559) return "MED INT";
-    return "URGENCIAS";
-}
+function calcularSrv(c) { const n = Number(c); if(n>=220 && n<=245) return "ONCOLOGIA"; if(n>=501 && n<=521) return "INFECTOLOGIA"; if(n>=522 && n<=535) return "CIRUGIA"; if(n>=536 && n<=542) return "GASTRO"; if(n>=543 && n<=549) return "TRAUMATOLOGIA"; if(n>=550 && n<=559) return "MED INT"; return "URGENCIAS"; }
+
+window.mover = async (id) => { const i = etiquetas.findIndex(x=>x.id===id); if(i>-1) { etiquetas[i].TIPO = etiquetas[i].TIPO === "DIARIA" ? "PRN" : "DIARIA"; render(); await push(); }};
 
 function imprimirVista() {
     const data = etiquetas.filter(e => (e.TIPO || "DIARIA") === currentTab && (currentSrv === "TODOS" || e.SERVICIO === currentSrv));
     if(data.length === 0) return;
-    const hoy = new Date();
-    const meses = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+    const hoy = new Date(), meses = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
     const fStr = `${hoy.getDate().toString().padStart(2,'0')}-${meses[hoy.getMonth()]}-${hoy.getFullYear().toString().slice(-2)}`;
     let h = '<table class="print-table">';
     for (let i = 0; i < data.length; i += 4) {
@@ -273,49 +310,18 @@ function imprimirVista() {
     window.print();
 }
 
-function imprimirSuministros() {
-    const data = etiquetas.filter(e => (e.TIPO || "DIARIA") === currentTab);
-    if(data.length === 0) return;
-    const cons = {}, jeringas = {"INSULINA":0,"3 ML":0,"5 ML":0,"10 ML":0,"20 ML":0};
-    const sc = ['ERITROPOYETINA', 'FILGRASTIM', 'PEG-FILGRASTIM', 'ENOXAPARINA'];
-    let cad = false;
-
-    data.forEach(e => {
-        cons[e.MEDICAMENTO] = (cons[e.MEDICAMENTO] || 0) + parseFloat(e.DOSIS);
-        const vM = parseFloat(e["VOL MED"]) || 0, vF = parseFloat(e["VOL FINAL"]) || 0;
-        if (sc.some(k => e.MEDICAMENTO.includes(k)) && vF <= 1) jeringas["INSULINA"]++;
-        else {
-            let vR = (vF <= 10) ? vF : (vM > 0 ? vM : vF);
-            if(vR>10) jeringas["20 ML"]++; else if(vR>5) jeringas["10 ML"]++; else if(vR>3) jeringas["5 ML"]++; else if(vR>0) jeringas["3 ML"]++;
-        }
-    });
-
-    let h = `<h2 style="text-align:center">SUMINISTROS - ${currentTab}</h2><table class="supply-table"><tr><th>MEDICAMENTO</th><th>TOTAL</th><th>LOTE</th><th>CAD</th></tr>`;
-    Object.keys(cons).sort().forEach(m => {
-        const info = dbMed.find(x => x.MEDICAMENTO === m) || {};
-        const c = estaCaducado(info.CADUCIDAD); if(c) cad = true;
-        h += `<tr class="${c?'expired-row':''}"><td>${m}</td><td>${cons[m]}</td><td>${info.LOTE||''}</td><td>${c?'• ':''}${info.CADUCIDAD||''}</td></tr>`;
-    });
-    h += `</table><h3>JERINGAS</h3><table class="supply-table" style="width:50%"><tr><th>TIPO</th><th>CANT</th></tr>`;
-    for(let t in jeringas) if(jeringas[t]>0) h += `<tr><td>${t}</td><td>${jeringas[t]}</td></tr>`;
-    h += '</table>';
-
-    if(cad) alert("¡ATENCIÓN! MEDICAMENTOS CADUCADOS.");
-    document.getElementById('printSupplies').innerHTML = h;
-    window.print();
-}
-
 async function generarDrive() {
-    const data = etiquetas.filter(e => e.TIPO === "DIARIA" && (currentSrv === "TODOS" || e.SERVICIO === currentSrv));
+    const data = etiquetas.filter(e => (e.TIPO || "DIARIA") === "DIARIA" && (currentSrv === "TODOS" || e.SERVICIO === currentSrv));
     if(data.length === 0) return alert("Solo Diarias");
+    document.getElementById('dbStatus').innerText = "GENERANDO...";
     bloqueoSinc = true;
     await fetch(URL_SCRIPT, { method: 'POST', body: JSON.stringify({ action: "DOC", datos: data }), mode: 'no-cors' });
-    alert("Enviado"); bloqueoSinc = false;
+    alert("Enviado"); bloqueoSinc = false; sync();
 }
 
 function eliminarSeleccionados() {
     const ids = Array.from(document.querySelectorAll('.cb:checked')).map(c => c.dataset.id);
-    if(ids.length === 0) return;
+    if(ids.length === 0) return alert("Selecciona etiquetas");
     if(confirm("¿Eliminar?")) { etiquetas = etiquetas.filter(e => !ids.includes(e.id)); render(); push(); }
 }
 
