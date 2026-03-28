@@ -27,7 +27,6 @@
 
             .app-container { display: flex; max-width: 1200px; margin: 0 auto 15px auto; padding: 0 10px; gap: 20px; align-items: flex-start; }
             
-            /* BARRA LATERAL (AHORA SON BOTONES) */
             .sidebar-servicios { width: 25%; background: white; border-radius: 8px; padding: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.12); position: sticky; top: 70px; }
             .sidebar-servicios h3 { margin-top: 5px; color: #5f6368; border-bottom: 2px solid #f1f3f4; padding-bottom: 8px; font-size: 14px; text-transform: uppercase;}
             .servicio-item { padding: 10px; border-radius: 4px; margin-bottom: 2px; font-weight: 500; color: #5f6368; display: flex; justify-content: space-between; font-size: 14px; cursor: pointer; transition: 0.2s;}
@@ -118,6 +117,7 @@
         </div>
     </div>
 
+    <!-- PESTAÑAS -->
     <div class="main-tabs">
         <div class="tab-btn active" id="tabDiaria" onclick="cambiarTab('DIARIA')">DOSIS DIARIA</div>
         <div class="tab-btn" id="tabPrn" onclick="cambiarTab('PRN')">DOSIS PRN</div>
@@ -138,6 +138,7 @@
         <button class="btn-action btn-save" id="btnGuardar"><i class="material-icons">cloud_upload</i> DRIVE VISTA</button>
     </div>
 
+    <!-- FORMULARIO CORREGIDO (Sin hacks dañinos, con campos requeridos) -->
     <div class="modal-overlay" id="modalForm">
         <div class="modal-content">
             <div class="modal-header">
@@ -149,25 +150,25 @@
                     <input type="hidden" id="etiquetaId"> 
                     
                     <div class="form-group"><label>CAMA</label>
-                        <input type="number" id="cama" required readonly onfocus="this.removeAttribute('readonly');" autocomplete="off" spellcheck="false">
+                        <input type="number" id="input_cama" required autocomplete="off">
                     </div>
                     <div class="form-group"><label>NOMBRE DEL PACIENTE</label>
-                        <input type="text" id="nombre" required readonly onfocus="this.removeAttribute('readonly');" autocomplete="off" spellcheck="false">
+                        <input type="text" id="input_nombre" required autocomplete="off">
                     </div>
                     <div class="form-group"><label>MEDICAMENTO</label>
-                        <input type="text" id="medicamento" list="listaMedicamentos" required readonly onfocus="this.removeAttribute('readonly');" autocomplete="off" spellcheck="false" placeholder="Escribe y presiona Enter">
+                        <input type="text" id="input_medicamento" list="listaMedicamentos" required autocomplete="off" placeholder="Escribe y presiona Enter">
                         <datalist id="listaMedicamentos"></datalist>
                     </div>
                     <div class="form-group"><label>DOSIS (Número)</label>
-                        <input type="number" id="dosis" step="0.01" required readonly onfocus="this.removeAttribute('readonly');" autocomplete="off">
+                        <input type="number" id="input_dosis" step="0.01" required autocomplete="off">
                     </div>
                     <div class="form-group"><label>HORARIO (Opcional)</label>
-                        <input type="text" id="horario" readonly onfocus="this.removeAttribute('readonly');" autocomplete="off" spellcheck="false">
+                        <input type="text" id="input_horario" autocomplete="off" placeholder="Ej. 14:00">
                     </div>
                     
                     <div class="form-group" id="grupoVolManual" style="display: none;">
                         <label>VOL. FINAL MANUAL (ml)</label>
-                        <input type="number" id="volFinalManual" step="0.01" readonly onfocus="this.removeAttribute('readonly');" autocomplete="off" placeholder="En blanco = automático">
+                        <input type="number" id="input_volFinalManual" step="0.01" autocomplete="off" placeholder="En blanco = automático">
                     </div>
 
                     <button type="submit" class="btn-submit" id="btnSubmitForm">AGREGAR ETIQUETA</button>
@@ -180,11 +181,9 @@
 
     <script type="module" src="app.js"></script>
     <script>
-        // Función global para las pestañas desde el HTML
         window.cambiarTab = function(tab) {
             document.dispatchEvent(new CustomEvent('cambioTab', { detail: tab }));
         };
-        // Función global para servicios desde el HTML
         window.cambiarServicio = function(servicio) {
             document.dispatchEvent(new CustomEvent('cambioServicio', { detail: servicio }));
         };
