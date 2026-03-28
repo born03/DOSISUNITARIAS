@@ -1,4 +1,3 @@
-// URL DE TU APPS SCRIPT (Reemplaza con la nueva versión si cambió)
 const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbyGMTI1Ftbe-Tc26QQxHY8io7ySfZydiM_Z6bOcpk08o725zLAfJia22ScQBUPPHY8j_Q/exec";
 
 let etiquetasPendientes = [];
@@ -20,7 +19,7 @@ const dbStatus = document.getElementById('dbStatus');
 
 document.getElementById('btnOpenModal').addEventListener('click', () => { 
     limpiarFormulario();
-    document.getElementById('modalTitle').innerText = "Nueva Etiqueta (Usa ENTER)";
+    document.getElementById('modalTitle').innerText = "Nueva Etiqueta";
     document.getElementById('btnSubmitForm').innerText = "AGREGAR ETIQUETA";
     document.getElementById('tipoDiaria').checked = true;
     grupoVolManual.style.display = 'none'; 
@@ -34,55 +33,50 @@ inputCama.addEventListener('input', () => {
     inputNombre.value = paciente ? paciente.NOMBRE : ''; 
 });
 
-// DESCARGAR BASE Y PACIENTES ACTIVOS
-async function cargarDatos() {
+// MOTOR DE SINCRONIZACIÓN EN TIEMPO REAL (Short-Polling cada 8 segundos)
+let isSyncing = false;
+async function fetchSyncRealTime() {
+    if (isSyncing || modal.style.display === 'flex') return; // Pausa si estás editando
     try {
-        dbStatus.innerText = "Sincronizando...";
-        syncIcon.style.display = 'inline-block';
-
         const response = await fetch(URL_APPS_SCRIPT);
         const data = await response.json();
         
         dbMedicamentos = data.medicamentos || [];
-        etiquetasPendientes = data.activas || []; // Carga desde Sheets en lugar de LocalStorage
-
-        const dataList = document.getElementById('listaMedicamentos');
-        dataList.innerHTML = '';
-        dbMedicamentos.forEach(med => {
-            let option = document.createElement('option');
-            option.value = med.MEDICAMENTO; 
-            dataList.appendChild(option);
-        });
-
-        dbStatus.innerText = "Nube sincronizada";
-        syncIcon.style.display = 'none';
-        renderizarInterfaz(); 
+        const datosNube = data.activas || [];
+        
+        // Compara si hubo cambios en la nube hechos por otros celulares
+        if(JSON.stringify(datosNube) !== JSON.stringify(etiquetasPendientes)) {
+            etiquetasPendientes = datosNube;
+            renderizarInterfaz(); 
+        }
+        dbStatus.innerText = "Sincronizado";
     } catch (error) {
-        dbStatus.innerText = "Modo Offline (Error de red)";
-        syncIcon.style.display = 'none';
-        renderizarInterfaz();
+        dbStatus.innerText = "Offline";
     }
 }
-cargarDatos();
+// Ejecutar una vez al inicio, luego arrancar el reloj interno
+fetchSyncRealTime().then(() => {
+    setInterval(fetchSyncRealTime, 8000); // 8000 ms = 8 segundos
+});
 
-// SINCRONIZACIÓN SILENCIOSA
-async function syncNube() {
+// Guardar mis cambios en la nube
+async function pushToNube() {
+    isSyncing = true;
     try {
         dbStatus.innerText = "Guardando...";
         syncIcon.style.display = 'inline-block';
-        
         await fetch(URL_APPS_SCRIPT, {
             method: 'POST',
             body: JSON.stringify({ action: "SYNC", datos: etiquetasPendientes }),
             mode: 'no-cors', 
             headers: { 'Content-Type': 'text/plain;charset=utf-8' }
         });
-
-        dbStatus.innerText = "Nube sincronizada";
-        syncIcon.style.display = 'none';
+        dbStatus.innerText = "Sincronizado";
     } catch (e) {
-        dbStatus.innerText = "Error al guardar en nube";
+        dbStatus.innerText = "Pendiente...";
+    } finally {
         syncIcon.style.display = 'none';
+        isSyncing = false;
     }
 }
 
@@ -125,11 +119,8 @@ form.addEventListener('submit', function(e) {
     if (!configMed) {
         configMed = dbMedicamentos.find(m => String(m.MEDICAMENTO).toUpperCase().startsWith(nombreMedInput));
         if (!configMed) configMed = dbMedicamentos.find(m => String(m.MEDICAMENTO).toUpperCase().includes(nombreMedInput));
-        if (configMed) {
-            nombreMedInput = configMed.MEDICAMENTO; 
-        } else {
-            return alert("Medicamento no encontrado en la base de datos.");
-        }
+        if (configMed) nombreMedInput = configMed.MEDICAMENTO; 
+        else return alert("Medicamento no encontrado en la base de datos.");
     }
 
     const volFinalDefinitivo = volFinalManualStr !== "" ? parseFloat(volFinalManualStr) : calcularVolFinal(dosis, configMed.CONCENTRACION, configMed.DILUYENTE);
@@ -153,9 +144,7 @@ form.addEventListener('submit', function(e) {
             if (camaVieja !== cama || nombreViejo !== nombre) {
                 etiquetasPendientes.forEach(e => {
                     if (e.CAMA === camaVieja && e.NOMBRE === nombreViejo) {
-                        e.CAMA = cama;
-                        e.NOMBRE = nombre;
-                        e.SERVICIO = calcularServicio(cama);
+                        e.CAMA = cama; e.NOMBRE = nombre; e.SERVICIO = calcularServicio(cama);
                     }
                 });
             }
@@ -167,8 +156,8 @@ form.addEventListener('submit', function(e) {
         inputMed.focus(); 
     }
 
-    renderizarInterfaz(); // Actua local al instante
-    syncNube(); // Sube a Google en background
+    renderizarInterfaz(); 
+    pushToNube(); // Fuerza la actualización a Google Sheets
 });
 
 function limpiarFormulario() {
@@ -209,7 +198,7 @@ document.getElementById('btnEliminarSeleccionados').addEventListener('click', ()
         const idsToDelete = Array.from(checkboxes).map(cb => cb.dataset.id);
         etiquetasPendientes = etiquetasPendientes.filter(e => !idsToDelete.includes(e.id));
         renderizarInterfaz();
-        syncNube();
+        pushToNube();
     }
 });
 
@@ -250,32 +239,33 @@ function renderizarInterfaz() {
                 const pacientes = grupos[tipo][servicio];
                 Object.keys(pacientes).sort().forEach(pacienteStr => {
                     const headerClass = tipo === "PRN" ? "header-prn" : "";
-                    htmlPacientes += `<div class="grupo-paciente"><div class="header-paciente ${headerClass}"><i class="material-icons">hotel</i> ${pacienteStr} (${servicio})</div>`;
+                    htmlPacientes += `<div class="grupo-paciente"><div class="header-paciente ${headerClass}"><i class="material-icons">hotel</i> ${pacienteStr}</div>`;
                     
-                    htmlPacientes += `<table class="med-table">
+                    htmlPacientes += `<div class="table-responsive"><table class="med-table">
                                         <tr>
-                                            <th style="width: 30px;"></th>
+                                            <th style="width: 25px;"></th>
                                             <th>MEDICAMENTO</th>
                                             <th>DOSIS</th>
-                                            <th>HORARIO</th>
+                                            <th>HORA</th>
                                             <th>VF</th>
-                                            <th style="text-align: right;"></th>
+                                            <th style="width: 30px;"></th>
                                         </tr>`;
                     
                     pacientes[pacienteStr].forEach(med => {
+                        // Incorporación de las Unidades y Vía a la vista UI
                         htmlPacientes += `
                             <tr>
                                 <td><input type="checkbox" class="med-checkbox" data-id="${med.id}"></td>
-                                <td class="med-name">${med.MEDICAMENTO}</td>
+                                <td class="med-name">${med.MEDICAMENTO} <span style="font-size:10px; color:#9aa0a6;">(${med.VIA || 'IV'})</span></td>
                                 <td>${med.DOSIS} <span style="font-size:11px; color:#5f6368;">${med.UNIDADES || "MG"}</span></td>
                                 <td>${med.HORARIO}</td>
                                 <td class="med-vol">${med['VOL FINAL']} ml</td>
                                 <td style="text-align: right;">
-                                    <button class="btn-edit" data-id="${med.id}"><i class="material-icons">edit</i></button>
+                                    <button class="btn-edit" data-id="${med.id}"><i class="material-icons" style="font-size:18px;">edit</i></button>
                                 </td>
                             </tr>`;
                     });
-                    htmlPacientes += `</table></div>`;
+                    htmlPacientes += `</table></div></div>`;
                 });
             });
         }
@@ -283,7 +273,7 @@ function renderizarInterfaz() {
     panelPacientes.innerHTML = htmlPacientes;
 }
 
-// IMPRIMIR NATIVO
+// IMPRIMIR NATIVO (Con Lógica de Vía y Unidades)
 document.getElementById('btnImprimir').addEventListener('click', () => {
     if (etiquetasPendientes.length === 0) return alert("No hay etiquetas.");
     const printGrid = document.getElementById('printGrid');
@@ -298,7 +288,7 @@ document.getElementById('btnImprimir').addEventListener('click', () => {
             if (i + j < etiquetasPendientes.length) {
                 let etiq = etiquetasPendientes[i + j];
                 let tituloMed = etiq.TIPO === "PRN" ? `<span class="prn-mark">PRN</span> ${etiq.MEDICAMENTO}` : etiq.MEDICAMENTO;
-                let textoVolumen = (etiq["VOL MED"] && etiq["VOL MED"] !== "0" && etiq["VOL MED"] !== 0) ? ` - ${etiq["VOL MED"]}${etiq.SOLUCION ? " ML" : ""}` : "";
+                let textoVolumen = (etiq["VOL MED"] && String(etiq["VOL MED"]) !== "0") ? ` - ${etiq["VOL MED"]}${etiq.SOLUCION ? " ML" : ""}` : "";
                 
                 tableHTML += `
                 <td>
@@ -343,14 +333,5 @@ document.getElementById('btnGuardar').addEventListener('click', async () => {
     } finally {
         btn.innerHTML = '<i class="material-icons">cloud_upload</i> GENERAR EN DRIVE';
         btn.disabled = false;
-    }
-});
-
-// VACIAR TODO
-document.getElementById('btnLimpiarTodo').addEventListener('click', () => {
-    if (confirm("¿Borrar toda la base actual?")) {
-        etiquetasPendientes = [];
-        renderizarInterfaz();
-        syncNube();
     }
 });
