@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Etiquetas IV - Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        /* ESTILOS DE PANTALLA */
+        @media screen {
+            body { font-family: 'Roboto', sans-serif; background-color: #f1f3f4; margin: 0; padding: 0; padding-bottom: 80px; }
+            .app-header { background-color: #1a73e8; color: white; padding: 15px 20px; font-size: 20px; font-weight: 500; box-shadow: 0 2px 4px rgba(0,0,0,0.2); position: sticky; top: 0; z-index: 100; display: flex; align-items: center; justify-content: space-between; }
+            .header-actions { display: flex; align-items: center; gap: 15px; }
+            .sync-status { font-size: 12px; color: #e8eaed; }
+            
+            .btn-icon-top { background: rgba(255,255,255,0.2); color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 5px; font-size: 13px; font-weight: bold; }
+            .btn-icon-top:hover { background: rgba(255,255,255,0.3); }
+            .btn-danger { background: #dc3545; }
+
+            .app-container { display: flex; max-width: 1200px; margin: 20px auto; padding: 0 15px; gap: 20px; align-items: flex-start; }
+            .sidebar-servicios { width: 25%; background: white; border-radius: 8px; padding: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.12); position: sticky; top: 80px; }
+            .sidebar-servicios h3 { margin-top: 0; color: #1a73e8; border-bottom: 2px solid #e8f0fe; padding-bottom: 10px; font-size: 16px; }
+            .servicio-item { padding: 10px; border-bottom: 1px solid #f1f3f4; font-weight: 500; color: #5f6368; display: flex; justify-content: space-between; }
+            .servicio-item .badge { background: #1a73e8; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px; }
+            
+            .main-pacientes { width: 75%; }
+            .empty-state { text-align: center; color: #5f6368; margin-top: 50px; font-size: 16px; width: 100%; }
+            
+            /* DISEÑO TIPO TABLA APPSHEET PARA PACIENTES */
+            .grupo-paciente { background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.12); margin-bottom: 15px; overflow: hidden; }
+            .header-paciente { background-color: #f8f9fa; padding: 10px 15px; font-weight: bold; color: #202124; border-bottom: 2px solid #1a73e8; display: flex; align-items: center; }
+            .header-paciente i { margin-right: 8px; color: #1a73e8; }
+            
+            .med-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+            .med-table th { background: #f1f3f4; color: #5f6368; text-align: left; padding: 8px 10px; font-size: 12px; font-weight: 500; }
+            .med-table td { padding: 8px 10px; border-bottom: 1px solid #e0e0e0; vertical-align: middle; }
+            .med-table tr:last-child td { border-bottom: none; }
+            .med-table .med-name { font-weight: 500; color: #202124; }
+            .med-table .med-vol { color: #1a73e8; font-weight: bold; }
+            
+            .btn-edit { background: none; border: none; color: #5f6368; cursor: pointer; padding: 4px; }
+            .btn-edit:hover { color: #1a73e8; }
+
+            .fab { position: fixed; bottom: 80px; right: 20px; background-color: #1a73e8; color: white; border: none; width: 56px; height: 56px; border-radius: 50%; box-shadow: 0 4px 6px rgba(0,0,0,0.3); display: flex; justify-content: center; align-items: center; cursor: pointer; z-index: 1000; }
+
+            .bottom-bar { position: fixed; bottom: 0; width: 100%; background: white; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); padding: 15px; box-sizing: border-box; display: flex; justify-content: center; gap: 15px; z-index: 900; }
+            .btn-action { border: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 8px; color: white; }
+            .btn-print { background-color: #ff9800; }
+            .btn-save { background-color: #34a853; }
+
+            .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center; }
+            .modal-content { background: white; width: 90%; max-width: 450px; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+            .modal-header { background: #f8f9fa; padding: 15px; font-weight: bold; border-bottom: 1px solid #e0e0e0; display: flex; justify-content: space-between; align-items: center; }
+            .modal-close { background: none; border: none; font-size: 20px; cursor: pointer; }
+            .modal-body { padding: 15px; max-height: 70vh; overflow-y: auto; }
+            .form-group { margin-bottom: 12px; }
+            .form-group label { display: block; font-size: 12px; font-weight: bold; color: #5f6368; margin-bottom: 4px; }
+            .form-group input { width: 100%; padding: 10px; border: 1px solid #dadce0; border-radius: 4px; font-size: 14px; box-sizing: border-box; text-transform: uppercase; }
+            .btn-submit { width: 100%; background: #1a73e8; color: white; border: none; padding: 12px; border-radius: 4px; font-weight: bold; font-size: 15px; cursor: pointer; margin-top: 10px;}
+            
+            #printArea { display: none; }
+        }
+
+        /* ESTILOS DE IMPRESIÓN ESTRICTOS (TABLA CLÁSICA) */
+        @media print {
+            @page { margin: 5mm; size: letter portrait; }
+            body * { visibility: hidden; }
+            #printArea, #printArea * { visibility: visible; }
+            #printArea { position: absolute; left: 0; top: 0; width: 100%; }
+            
+            .print-table { 
+                width: 100%; 
+                border-collapse: collapse; 
+                table-layout: fixed; 
+            }
+            .print-table td { 
+                width: 25%; /* Obliga a 4 columnas exactas */
+                height: 23.5mm; /* Altura de la etiqueta */
+                padding: 1.5mm; 
+                border: 1px dashed #ccc; /* Guía de corte sutil */
+                overflow: hidden;
+                vertical-align: top;
+            }
+            .etiqueta-print { 
+                font-family: 'Calibri', 'Arial', sans-serif; 
+                font-size: 6pt; /* Misma letra que Google Docs */
+                line-height: 1.0; /* Sin espacios extra */
+            }
+            .etiqueta-print p { margin: 0 0 1.5px 0; padding: 0; }
+            .bold { font-weight: bold; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-header">
+        <div>Sistema de Etiquetas IV</div>
+        <div class="header-actions">
+            <span class="sync-status" id="dbStatus">Conectando...</span>
+            <button id="btnEliminarSeleccionados" class="btn-icon-top btn-danger" title="Eliminar seleccionados"><i class="material-icons" style="font-size: 18px;">delete</i> BORRAR</button>
+            <button id="btnLimpiarTodo" class="btn-icon-top" title="Borrar todo"><i class="material-icons" style="font-size: 18px;">delete_sweep</i> VACIAR</button>
+        </div>
+    </div>
+
+    <div class="app-container">
+        <div class="sidebar-servicios">
+            <h3>Resumen por Servicio</h3>
+            <div id="listaServicios"></div>
+        </div>
+        <div class="main-pacientes" id="listaPacientes"></div>
+    </div>
+
+    <button class="fab" id="btnOpenModal"><i class="material-icons">add</i></button>
+
+    <div class="bottom-bar">
+        <button class="btn-action btn-print" id="btnImprimir"><i class="material-icons">print</i> IMPRIMIR DIRECTO</button>
+        <button class="btn-action btn-save" id="btnGuardar"><i class="material-icons">cloud_upload</i> GUARDAR EN DRIVE</button>
+    </div>
+
+    <!-- FORMULARIO HACKEADO CONTRA AUTOCOMPLETADO DE MAC -->
+    <div class="modal-overlay" id="modalForm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span id="modalTitle">Nueva Etiqueta (Usa ENTER)</span>
+                <button class="modal-close" id="btnCloseModal"><i class="material-icons">close</i></button>
+            </div>
+            <div class="modal-body">
+                <!-- Data-form-type engaña al navegador -->
+                <form id="etiquetaForm" data-form-type="other" autocomplete="off" spellcheck="false">
+                    <input type="hidden" id="etiquetaId"> 
+                    
+                    <div class="form-group"><label>CAMA</label>
+                        <input type="number" id="cama" required autocomplete="new-password"></div>
+                    
+                    <div class="form-group"><label>NOMBRE DEL PACIENTE</label>
+                        <input type="text" id="nombre" required autocomplete="new-password"></div>
+                    
+                    <div class="form-group"><label>MEDICAMENTO</label>
+                        <input type="text" id="medicamento" list="listaMedicamentos" required autocomplete="new-password" placeholder="Escribe y presiona Enter">
+                        <datalist id="listaMedicamentos"></datalist>
+                    </div>
+                    
+                    <div class="form-group"><label>DOSIS (Número)</label>
+                        <input type="number" id="dosis" step="0.01" required autocomplete="new-password"></div>
+                    
+                    <div class="form-group"><label>HORARIO</label>
+                        <input type="text" id="horario" required autocomplete="new-password"></div>
+                    
+                    <div class="form-group" id="grupoVolManual" style="display: none;">
+                        <label>VOL. FINAL MANUAL (ml) <span style="font-weight: normal; color: #1a73e8;">(Opcional)</span></label>
+                        <input type="number" id="volFinalManual" step="0.01" autocomplete="new-password" placeholder="En blanco = automático">
+                    </div>
+
+                    <button type="submit" class="btn-submit" id="btnSubmitForm">AGREGAR ETIQUETA</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="printArea"><div id="printGrid"></div></div>
+
+    <script type="module" src="app.js"></script>
+</body>
+</html>
