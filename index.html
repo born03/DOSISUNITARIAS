@@ -1,162 +1,103 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Etiquetas IV - Central</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <style>
-        @media screen {
-            body { font-family: 'Roboto', sans-serif; background-color: #f1f3f4; margin: 0; padding: 0; padding-bottom: 100px; }
-            .app-header { background-color: #1a73e8; color: white; padding: 12px 15px; font-size: 18px; font-weight: 500; box-shadow: 0 2px 4px rgba(0,0,0,0.2); position: sticky; top: 0; z-index: 100; display: flex; align-items: center; justify-content: space-between; }
-            .header-actions { display: flex; align-items: center; gap: 10px; }
-            .sync-status { font-size: 11px; color: #e8eaed; display: flex; align-items: center; gap: 4px;}
-            .syncing-icon { animation: spin 1s linear infinite; display: none; font-size: 14px;}
-            @keyframes spin { 100% { transform: rotate(360deg); } }
-            
-            .btn-icon-top { background: rgba(255,255,255,0.2); color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 5px; font-size: 12px; font-weight: bold; }
-            .btn-icon-top:hover { background: rgba(255,255,255,0.3); }
+function doGet(e) {
+  try {
+    const idExcel = "15WAv6wHTlEtbVthCfGunD9LuwbUxeZ_7aUym3y4s4uk";
+    const doc = SpreadsheetApp.openById(idExcel);
+    
+    // 1. Obtener Base de Medicamentos (TODO COMO TEXTO)
+    const sheetConfig = doc.getSheetByName("CONFIGURACIONES");
+    const dataConfig = sheetConfig.getDataRange().getDisplayValues(); // getDisplayValues mantiene los ceros
+    const headersConfig = dataConfig[0];
+    const medicamentos = [];
+    for (let i = 1; i < dataConfig.length; i++) {
+      let obj = {};
+      for (let j = 0; j < headersConfig.length; j++) {
+        obj[headersConfig[j]] = dataConfig[i][j].toString(); 
+      }
+      if (obj["MEDICAMENTO"]) medicamentos.push(obj);
+    }
 
-            .main-tabs { display: flex; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.12); margin-bottom: 15px; position: sticky; top: 50px; z-index: 99; }
-            .tab-btn { flex: 1; text-align: center; padding: 15px; font-weight: bold; color: #5f6368; cursor: pointer; border-bottom: 3px solid transparent; transition: 0.2s; font-size: 13px; }
-            .tab-btn.active { color: #1a73e8; border-bottom-color: #1a73e8; background-color: #e8f0fe; }
-            .tab-btn.active-prn { color: #e53935; border-bottom-color: #e53935; background-color: #ffebee; }
-            .tab-btn.active-lotes { color: #34a853; border-bottom-color: #34a853; background-color: #e8f5e9; }
-
-            .app-container { display: flex; max-width: 1200px; margin: 0 auto 15px auto; padding: 0 10px; gap: 20px; align-items: flex-start; }
-            .sidebar-servicios { width: 25%; background: white; border-radius: 8px; padding: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.12); position: sticky; top: 120px; }
-            .servicio-item { padding: 10px; border-radius: 4px; margin-bottom: 2px; color: #5f6368; display: flex; justify-content: space-between; font-size: 14px; cursor: pointer; }
-            .servicio-item.active { background-color: #e8f0fe; color: #1a73e8; font-weight: bold; border-left: 4px solid #1a73e8; }
-            
-            .main-pacientes { width: 75%; }
-            .empty-state { text-align: center; color: #5f6368; margin-top: 50px; font-size: 15px; width: 100%; }
-
-            .grupo-paciente { background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.12); margin-bottom: 15px; overflow: hidden; }
-            .header-paciente { background-color: #f8f9fa; padding: 10px 12px; font-weight: bold; color: #202124; border-bottom: 2px solid #1a73e8; display: flex; align-items: center; font-size: 14px;}
-            
-            /* TABLA LOTES */
-            .lote-card { background: white; border-radius: 8px; padding: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.12); margin-bottom: 10px; }
-            .lote-input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
-            .lote-input-grid div { display: flex; flex-direction: column; }
-            .lote-input-grid label { font-size: 10px; font-weight: bold; color: #1a73e8; margin-bottom: 2px;}
-            .lote-input-grid input { padding: 8px; border: 1px solid #dadce0; border-radius: 4px; font-size: 13px; text-transform: uppercase; }
-
-            .table-responsive { width: 100%; overflow-x: auto; }
-            .med-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 450px; }
-            .med-table th { background: #f8f9fa; color: #5f6368; text-align: left; padding: 8px; font-size: 11px; }
-            .med-table td { padding: 8px; border-bottom: 1px solid #e0e0e0; vertical-align: middle; }
-
-            .fab { position: fixed; bottom: 85px; right: 20px; background-color: #1a73e8; color: white; border: none; width: 56px; height: 56px; border-radius: 50%; box-shadow: 0 4px 6px rgba(0,0,0,0.3); display: flex; justify-content: center; align-items: center; cursor: pointer; z-index: 1000; }
-
-            .bottom-bar { position: fixed; bottom: 0; width: 100%; background: white; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); padding: 12px 15px; padding-bottom: calc(12px + env(safe-area-inset-bottom)); box-sizing: border-box; display: flex; justify-content: center; gap: 10px; z-index: 900; }
-            .btn-action { border: none; padding: 12px 15px; border-radius: 8px; font-weight: bold; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; color: white; flex: 1; max-width: 200px;}
-            .btn-print { background-color: #ff9800; }
-            .btn-save { background-color: #34a853; }
-            .btn-lotes-save { background-color: #34a853; width: 100%; margin-top: 10px; padding: 15px; border-radius: 8px; color: white; font-weight: bold; border: none; cursor: pointer;}
-
-            .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center; }
-            .modal-content { background: white; width: 95%; max-width: 400px; border-radius: 8px; overflow: hidden; }
-            .modal-header { background: #f8f9fa; padding: 12px 15px; font-weight: bold; border-bottom: 1px solid #e0e0e0; display: flex; justify-content: space-between; align-items: center; }
-            .modal-body { padding: 15px; max-height: 75vh; overflow-y: auto; }
-            .form-group { margin-bottom: 12px; }
-            .form-group label { display: block; font-size: 12px; font-weight: bold; color: #5f6368; margin-bottom: 4px; }
-            .form-group input { width: 100%; padding: 10px; border: 1px solid #dadce0; border-radius: 4px; font-size: 16px; box-sizing: border-box; text-transform: uppercase;}
-            .btn-submit { width: 100%; background: #1a73e8; color: white; border: none; padding: 14px; border-radius: 4px; font-weight: bold; font-size: 15px; cursor: pointer; margin-top: 10px;}
-            
-            #searchLotes { width: 100%; padding: 12px; border: 1px solid #dadce0; border-radius: 8px; margin-bottom: 15px; box-sizing: border-box; font-size: 14px; }
-
-            #printArea, #printSupplies { display: none; }
-
-            @media (max-width: 768px) {
-                .sidebar-servicios { display: none; }
-                .main-pacientes { width: 100%; }
-                .btn-icon-top span { display: none; }
-                .lote-input-grid { grid-template-columns: 1fr; }
-            }
+    // 2. Obtener Etiquetas Activas
+    let sheetActivas = doc.getSheetByName("DOSIS_ACTIVAS");
+    let activas = [];
+    if (sheetActivas) {
+      const dataActivas = sheetActivas.getDataRange().getDisplayValues();
+      if(dataActivas.length > 1) {
+        const headersActivas = dataActivas[0];
+        for (let i = 1; i < dataActivas.length; i++) {
+          let obj = {};
+          for (let j = 0; j < headersActivas.length; j++) obj[headersActivas[j]] = dataActivas[i][j].toString();
+          activas.push(obj);
         }
+      }
+    }
 
-        @media print {
-            body * { visibility: hidden; }
-            #printArea, #printArea * { visibility: visible; }
-            #printArea { position: absolute; left: 0; top: 0; width: 100%; }
-            .print-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-            .print-table td { width: 25%; height: 23.5mm; padding: 1.5mm; border: 1px dashed #ccc; vertical-align: top; overflow: hidden;}
-            
-            #printSupplies, #printSupplies * { visibility: visible; }
-            #printSupplies { position: absolute; left: 0; top: 0; width: 100%; padding: 10px; font-family: 'Roboto', sans-serif;}
-            .supply-table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
-            .supply-table th, .supply-table td { border: 1px solid #000; padding: 4px; font-size: 8px; text-align: center; }
+    return ContentService.createTextOutput(JSON.stringify({
+      medicamentos: medicamentos,
+      activas: activas
+    })).setMimeType(ContentService.MimeType.JSON);
+
+  } catch (error) {
+    return ContentService.createTextOutput(JSON.stringify({error: error.toString()})).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function doPost(e) {
+  try {
+    const payload = JSON.parse(e.postData.contents);
+    const idExcel = "15WAv6wHTlEtbVthCfGunD9LuwbUxeZ_7aUym3y4s4uk";
+    const doc = SpreadsheetApp.openById(idExcel);
+    
+    // ACCIÓN: ACTUALIZAR CONFIGURACIONES (LOTES) - FORZANDO TEXTO
+    if (payload.action === "UPDATE_CONFIG") {
+      const sheet = doc.getSheetByName("CONFIGURACIONES");
+      const data = sheet.getDataRange().getDisplayValues();
+      const headers = data[0];
+      
+      const colMed = headers.indexOf("MEDICAMENTO");
+      const campos = ["DENOMINACION", "LOTE", "CADUCIDAD", "LABORATORIO"];
+
+      payload.datos.forEach(nuevo => {
+        for (let i = 1; i < data.length; i++) {
+          if (data[i][colMed].toString().trim() === nuevo.MEDICAMENTO.trim()) {
+            campos.forEach(campo => {
+              let colIdx = headers.indexOf(campo);
+              if (colIdx > -1) {
+                let celda = sheet.getRange(i + 1, colIdx + 1);
+                celda.setNumberFormat("@"); // FORMATO TEXTO PLANO
+                celda.setValue(nuevo[campo].toString());
+              }
+            });
+            break;
+          }
         }
-    </style>
-</head>
-<body>
+      });
+      return ContentService.createTextOutput("Configuraciones Actualizadas");
+    }
 
-    <div class="app-header">
-        <div>Etiquetas IV</div>
-        <div class="header-actions">
-            <span class="sync-status">
-                <i class="material-icons syncing-icon" id="syncIcon">sync</i>
-                <span id="dbStatus">Conectando...</span>
-            </span>
-            <button id="btnSuministros" class="btn-icon-top" style="background:#673ab7"><i class="material-icons">calculate</i><span>SUMINISTROS</span></button>
-            <button id="btnEliminarSeleccionados" class="btn-icon-top" style="background:#dc3545"><i class="material-icons">delete</i></button>
-        </div>
-    </div>
+    // ACCIÓN: SINCRONIZAR ETIQUETAS
+    if (payload.action === "SYNC") {
+      let sheetActivas = doc.getSheetByName("DOSIS_ACTIVAS");
+      if (!sheetActivas) sheetActivas = doc.insertSheet("DOSIS_ACTIVAS");
+      sheetActivas.clear();
+      const headers = ["id", "TIPO", "CAMA", "NOMBRE", "MEDICAMENTO", "DOSIS", "HORARIO", "SERVICIO", "VOL MED", "VOL FINAL", "SOLUCION", "TIEMPO", "UNIDADES", "VIA", "fecha_registro"];
+      sheetActivas.appendRow(headers);
+      
+      payload.datos.forEach(d => {
+        let fila = headers.map(h => d[h] ? d[h].toString() : "");
+        let range = sheetActivas.getRange(sheetActivas.getLastRow() + 1, 1, 1, headers.length);
+        range.setNumberFormat("@"); // TODO COMO TEXTO
+        range.setValues([fila]);
+      });
+      return ContentService.createTextOutput("Sincronizado");
+    }
 
-    <div class="main-tabs">
-        <div class="tab-btn active" id="tabDiaria" onclick="cambiarTab('DIARIA')">DIARIA</div>
-        <div class="tab-btn" id="tabPrn" onclick="cambiarTab('PRN')">PRN</div>
-        <div class="tab-btn" id="tabLotes" onclick="cambiarTab('LOTES')">LOTES</div>
-    </div>
+    // ACCIÓN: DRIVE (ETIQUETAS)
+    if (payload.action === "DOC") {
+        // ... (Mantener lógica de DocumentApp del mensaje anterior)
+        return ContentService.createTextOutput("Docs Generado");
+    }
 
-    <div class="app-container">
-        <div class="sidebar-servicios" id="sidebar">
-            <h3>Filtrar Servicio</h3>
-            <div id="listaServicios"></div>
-        </div>
-        <div class="main-pacientes" id="listaPacientes">
-            </div>
-    </div>
-
-    <button class="fab" id="btnOpenModal"><i class="material-icons">add</i></button>
-
-    <div class="bottom-bar" id="bottomBar">
-        <button class="btn-action btn-print" id="btnImprimir"><i class="material-icons">print</i> IMPRIMIR</button>
-        <button class="btn-action btn-save" id="btnGuardar"><i class="material-icons">cloud_upload</i> DRIVE</button>
-    </div>
-
-    <div class="modal-overlay" id="modalForm">
-        <div class="modal-content">
-            <div class="modal-header">
-                <span id="modalTitle">Nueva Etiqueta</span>
-                <button onclick="document.getElementById('modalForm').style.display='none'" style="background:none; border:none;"><i class="material-icons">close</i></button>
-            </div>
-            <div class="modal-body">
-                <form id="etiquetaForm" autocomplete="off">
-                    <input type="hidden" id="etiquetaId"> 
-                    <div class="form-group"><label>CAMA *</label><input type="number" id="input_cama" required></div>
-                    <div class="form-group"><label>NOMBRE DEL PACIENTE *</label><input type="text" id="input_nombre" required></div>
-                    <div class="form-group"><label>MEDICAMENTO *</label>
-                        <input type="text" id="input_medicamento" list="listaMedicamentos" required>
-                        <datalist id="listaMedicamentos"></datalist>
-                    </div>
-                    <div class="form-group"><label>DOSIS (Número) *</label><input type="number" id="input_dosis" step="0.01" required></div>
-                    <div class="form-group"><label>HORARIO (Opcional)</label><input type="text" id="input_horario"></div>
-                    <div class="form-group" id="grupoVolManual" style="display: none;"><label>VOL. FINAL MANUAL (ml)</label><input type="number" id="input_volFinalManual" step="0.01"></div>
-                    <button type="submit" class="btn-submit" id="btnSubmitForm">AGREGAR</button>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <div id="printArea"><div id="printGrid"></div></div>
-    <div id="printSupplies"></div>
-
-    <script type="module" src="app.js"></script>
-    <script>
-        window.cambiarTab = function(tab) { document.dispatchEvent(new CustomEvent('cambioTab', { detail: tab })); };
-        window.cambiarServicio = function(servicio) { document.dispatchEvent(new CustomEvent('cambioServicio', { detail: servicio })); };
-    </script>
-</body>
-</html>
+  } catch (error) {
+    return ContentService.createTextOutput("Error: " + error.toString());
+  }
+}
