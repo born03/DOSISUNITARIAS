@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <!-- Viewport estricto para evitar zooms raros en móviles iOS/Android -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Etiquetas IV - Central</title>
@@ -19,24 +18,32 @@
             .btn-icon-top { background: rgba(255,255,255,0.2); color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 5px; font-size: 12px; font-weight: bold; }
             .btn-danger { background: #dc3545; }
 
-            .app-container { display: flex; max-width: 1200px; margin: 15px auto; padding: 0 10px; gap: 20px; align-items: flex-start; }
-            .sidebar-servicios { width: 25%; background: white; border-radius: 8px; padding: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.12); position: sticky; top: 70px; }
-            .sidebar-servicios h3 { margin-top: 0; color: #1a73e8; border-bottom: 2px solid #e8f0fe; padding-bottom: 8px; font-size: 15px; text-transform: uppercase;}
-            .servicio-item { padding: 8px; border-bottom: 1px solid #f1f3f4; font-weight: 500; color: #5f6368; display: flex; justify-content: space-between; font-size: 14px;}
-            .servicio-item .badge { background: #1a73e8; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px; }
+            /* PESTAÑAS PRINCIPALES */
+            .main-tabs { display: flex; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.12); margin-bottom: 15px; }
+            .tab-btn { flex: 1; text-align: center; padding: 15px; font-weight: bold; color: #5f6368; cursor: pointer; border-bottom: 3px solid transparent; transition: 0.2s; font-size: 14px; text-transform: uppercase;}
+            .tab-btn:hover { background-color: #f8f9fa; }
+            .tab-btn.active { color: #1a73e8; border-bottom-color: #1a73e8; background-color: #e8f0fe; }
+            .tab-btn.active-prn { color: #e53935; border-bottom-color: #e53935; background-color: #ffebee; }
+
+            .app-container { display: flex; max-width: 1200px; margin: 0 auto 15px auto; padding: 0 10px; gap: 20px; align-items: flex-start; }
+            
+            /* BARRA LATERAL (AHORA SON BOTONES) */
+            .sidebar-servicios { width: 25%; background: white; border-radius: 8px; padding: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.12); position: sticky; top: 70px; }
+            .sidebar-servicios h3 { margin-top: 5px; color: #5f6368; border-bottom: 2px solid #f1f3f4; padding-bottom: 8px; font-size: 14px; text-transform: uppercase;}
+            .servicio-item { padding: 10px; border-radius: 4px; margin-bottom: 2px; font-weight: 500; color: #5f6368; display: flex; justify-content: space-between; font-size: 14px; cursor: pointer; transition: 0.2s;}
+            .servicio-item:hover { background-color: #f1f3f4; }
+            .servicio-item.active { background-color: #e8f0fe; color: #1a73e8; font-weight: bold; border-left: 4px solid #1a73e8; }
+            .servicio-item .badge { background: #dadce0; color: #5f6368; padding: 2px 8px; border-radius: 12px; font-size: 12px; }
+            .servicio-item.active .badge { background: #1a73e8; color: white; }
             
             .main-pacientes { width: 75%; }
             .empty-state { text-align: center; color: #5f6368; margin-top: 50px; font-size: 15px; width: 100%; }
-            
-            .section-title { font-size: 16px; color: #1a73e8; font-weight: bold; margin-top: 15px; margin-bottom: 10px; border-bottom: 2px solid #e8f0fe; padding-bottom: 5px;}
-            .section-prn { color: #e53935; border-bottom-color: #ffcdd2; }
 
             .grupo-paciente { background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.12); margin-bottom: 15px; overflow: hidden; }
             .header-paciente { background-color: #f8f9fa; padding: 10px 12px; font-weight: bold; color: #202124; border-bottom: 2px solid #1a73e8; display: flex; align-items: center; font-size: 14px;}
             .header-prn { border-bottom-color: #e53935; }
             .header-paciente i { margin-right: 8px; color: #5f6368; font-size: 18px;}
             
-            /* TABLA OPTIMIZADA PARA MÓVIL (Scroll horizontal si es necesario) */
             .table-responsive { width: 100%; overflow-x: auto; }
             .med-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 400px; }
             .med-table th { background: #f1f3f4; color: #5f6368; text-align: left; padding: 8px; font-size: 11px; font-weight: 500; }
@@ -44,11 +51,13 @@
             .med-table .med-name { font-weight: 500; color: #202124; }
             .med-table .med-vol { color: #1a73e8; font-weight: bold; }
             
-            .btn-edit { background: none; border: none; color: #5f6368; cursor: pointer; padding: 4px; }
+            .actions-cell { text-align: right; white-space: nowrap; }
+            .btn-edit, .btn-swap { background: none; border: none; color: #5f6368; cursor: pointer; padding: 4px; border-radius: 50%; transition: 0.2s;}
+            .btn-edit:hover { color: #1a73e8; background: #e8f0fe; }
+            .btn-swap:hover { color: #e53935; background: #ffebee; }
 
             .fab { position: fixed; bottom: 85px; right: 20px; background-color: #1a73e8; color: white; border: none; width: 56px; height: 56px; border-radius: 50%; box-shadow: 0 4px 6px rgba(0,0,0,0.3); display: flex; justify-content: center; align-items: center; cursor: pointer; z-index: 1000; }
 
-            /* Barra Inferior Segura para iOS (SafeArea) */
             .bottom-bar { position: fixed; bottom: 0; width: 100%; background: white; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); padding: 12px 15px; padding-bottom: calc(12px + env(safe-area-inset-bottom)); box-sizing: border-box; display: flex; justify-content: center; gap: 10px; z-index: 900; }
             .btn-action { border: none; padding: 12px 15px; border-radius: 8px; font-weight: bold; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; color: white; flex: 1; max-width: 200px;}
             .btn-print { background-color: #ff9800; }
@@ -60,32 +69,27 @@
             .modal-close { background: none; border: none; font-size: 20px; cursor: pointer; }
             .modal-body { padding: 15px; max-height: 75vh; overflow-y: auto; }
             
-            /* Fuente de 16px OBLIGATORIA para inputs en iOS (evita zoom in automático al tocar) */
             .form-group { margin-bottom: 12px; }
             .form-group label { display: block; font-size: 12px; font-weight: bold; color: #5f6368; margin-bottom: 4px; }
-            .form-group input[type="text"], .form-group input[type="number"], .form-group input[type="search"] { width: 100%; padding: 10px; border: 1px solid #dadce0; border-radius: 4px; font-size: 16px; box-sizing: border-box; text-transform: uppercase; font-family: 'Roboto', sans-serif;}
+            .form-group input { width: 100%; padding: 10px; border: 1px solid #dadce0; border-radius: 4px; font-size: 16px; box-sizing: border-box; text-transform: uppercase; font-family: 'Roboto', sans-serif;}
             
-            .radio-group { display: flex; gap: 10px; margin-bottom: 15px; }
-            .radio-label { flex: 1; text-align: center; padding: 8px; border: 1px solid #dadce0; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px; color: #5f6368; }
-            .radio-group input[type="radio"] { display: none; }
-            .radio-group input[type="radio"]:checked + .radio-label { background: #1a73e8; color: white; border-color: #1a73e8; }
-            .radio-group input[type="radio"][value="PRN"]:checked + .radio-label { background: #e53935; border-color: #e53935; }
-            input[type="search"]::-webkit-search-decoration, input[type="search"]::-webkit-search-cancel-button { display: none; }
             .btn-submit { width: 100%; background: #1a73e8; color: white; border: none; padding: 14px; border-radius: 4px; font-weight: bold; font-size: 15px; cursor: pointer; margin-top: 10px;}
             
             #printArea { display: none; }
 
-            /* MEDIA QUERIES PARA CELULARES Y IPAD VERTICAL */
             @media (max-width: 768px) {
                 .app-container { flex-direction: column; gap: 10px;}
                 .sidebar-servicios, .main-pacientes { width: 100%; }
-                .sidebar-servicios { position: static; padding: 10px; margin-bottom: 5px;}
-                .fab { bottom: 95px; right: 15px; } /* Sube el botón para que no choque con la barra de abajo */
+                .sidebar-servicios { position: static; padding: 5px; margin-bottom: 0px; display: flex; overflow-x: auto; white-space: nowrap; gap: 5px;}
+                .sidebar-servicios h3 { display: none; }
+                .servicio-item { padding: 6px 12px; border-radius: 20px; border: 1px solid #e0e0e0; margin-bottom: 0; flex-shrink: 0;}
+                .servicio-item.active { border-left: 1px solid #1a73e8; background: #1a73e8; color: white;}
+                .servicio-item.active .badge { background: white; color: #1a73e8; }
+                .fab { bottom: 95px; right: 15px; } 
                 .bottom-bar { padding: 10px; padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
             }
         }
 
-        /* ESTILOS DE IMPRESIÓN ESTRICTOS */
         @media print {
             @page { margin: 5mm; size: letter portrait; }
             body * { visibility: hidden; }
@@ -114,9 +118,14 @@
         </div>
     </div>
 
+    <div class="main-tabs">
+        <div class="tab-btn active" id="tabDiaria" onclick="cambiarTab('DIARIA')">DOSIS DIARIA</div>
+        <div class="tab-btn" id="tabPrn" onclick="cambiarTab('PRN')">DOSIS PRN</div>
+    </div>
+
     <div class="app-container">
         <div class="sidebar-servicios">
-            <h3>Resumen Servicios</h3>
+            <h3>Filtrar Servicio</h3>
             <div id="listaServicios"></div>
         </div>
         <div class="main-pacientes" id="listaPacientes"></div>
@@ -125,8 +134,8 @@
     <button class="fab" id="btnOpenModal"><i class="material-icons">add</i></button>
 
     <div class="bottom-bar">
-        <button class="btn-action btn-print" id="btnImprimir"><i class="material-icons">print</i> IMPRIMIR</button>
-        <button class="btn-action btn-save" id="btnGuardar"><i class="material-icons">cloud_upload</i> ENVIAR A DRIVE</button>
+        <button class="btn-action btn-print" id="btnImprimir"><i class="material-icons">print</i> IMPRIMIR VISTA</button>
+        <button class="btn-action btn-save" id="btnGuardar"><i class="material-icons">cloud_upload</i> DRIVE VISTA</button>
     </div>
 
     <div class="modal-overlay" id="modalForm">
@@ -136,27 +145,29 @@
                 <button class="modal-close" id="btnCloseModal"><i class="material-icons">close</i></button>
             </div>
             <div class="modal-body">
-                <form id="etiquetaForm" data-form-type="other" autocomplete="off" spellcheck="false">
+                <form id="etiquetaForm" autocomplete="off">
                     <input type="hidden" id="etiquetaId"> 
                     
-                    <div class="radio-group">
-                        <input type="radio" id="tipoDiaria" name="tipoDosis" value="DIARIA" checked>
-                        <label for="tipoDiaria" class="radio-label">DOSIS DIARIA</label>
-                        <input type="radio" id="tipoPrn" name="tipoDosis" value="PRN">
-                        <label for="tipoPrn" class="radio-label">DOSIS PRN</label>
+                    <div class="form-group"><label>CAMA</label>
+                        <input type="number" id="cama" required readonly onfocus="this.removeAttribute('readonly');" autocomplete="off" spellcheck="false">
                     </div>
-
-                    <div class="form-group"><label>CAMA</label><input type="search" id="cama" required autocomplete="nope"></div>
-                    <div class="form-group"><label>NOMBRE DEL PACIENTE</label><input type="search" id="nombre" required autocomplete="nope"></div>
-                    <div class="form-group"><label>MEDICAMENTO</label><input type="search" id="medicamento" list="listaMedicamentos" required autocomplete="nope" placeholder="Escribe y presiona Enter">
+                    <div class="form-group"><label>NOMBRE DEL PACIENTE</label>
+                        <input type="text" id="nombre" required readonly onfocus="this.removeAttribute('readonly');" autocomplete="off" spellcheck="false">
+                    </div>
+                    <div class="form-group"><label>MEDICAMENTO</label>
+                        <input type="text" id="medicamento" list="listaMedicamentos" required readonly onfocus="this.removeAttribute('readonly');" autocomplete="off" spellcheck="false" placeholder="Escribe y presiona Enter">
                         <datalist id="listaMedicamentos"></datalist>
                     </div>
-                    <div class="form-group"><label>DOSIS (Número)</label><input type="search" id="dosis" required autocomplete="nope"></div>
-                    <div class="form-group"><label>HORARIO</label><input type="search" id="horario" required autocomplete="nope"></div>
+                    <div class="form-group"><label>DOSIS (Número)</label>
+                        <input type="number" id="dosis" step="0.01" required readonly onfocus="this.removeAttribute('readonly');" autocomplete="off">
+                    </div>
+                    <div class="form-group"><label>HORARIO (Opcional)</label>
+                        <input type="text" id="horario" readonly onfocus="this.removeAttribute('readonly');" autocomplete="off" spellcheck="false">
+                    </div>
                     
                     <div class="form-group" id="grupoVolManual" style="display: none;">
                         <label>VOL. FINAL MANUAL (ml)</label>
-                        <input type="search" id="volFinalManual" autocomplete="nope" placeholder="En blanco = automático">
+                        <input type="number" id="volFinalManual" step="0.01" readonly onfocus="this.removeAttribute('readonly');" autocomplete="off" placeholder="En blanco = automático">
                     </div>
 
                     <button type="submit" class="btn-submit" id="btnSubmitForm">AGREGAR ETIQUETA</button>
@@ -168,5 +179,15 @@
     <div id="printArea"><div id="printGrid"></div></div>
 
     <script type="module" src="app.js"></script>
+    <script>
+        // Función global para las pestañas desde el HTML
+        window.cambiarTab = function(tab) {
+            document.dispatchEvent(new CustomEvent('cambioTab', { detail: tab }));
+        };
+        // Función global para servicios desde el HTML
+        window.cambiarServicio = function(servicio) {
+            document.dispatchEvent(new CustomEvent('cambioServicio', { detail: servicio }));
+        };
+    </script>
 </body>
 </html>
