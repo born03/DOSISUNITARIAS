@@ -3,16 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Etiquetas IV - Dashboard</title>
+    <title>Etiquetas IV - Central</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <style>
-        /* ESTILOS DE PANTALLA */
         @media screen {
             body { font-family: 'Roboto', sans-serif; background-color: #f1f3f4; margin: 0; padding: 0; padding-bottom: 80px; }
             .app-header { background-color: #1a73e8; color: white; padding: 15px 20px; font-size: 20px; font-weight: 500; box-shadow: 0 2px 4px rgba(0,0,0,0.2); position: sticky; top: 0; z-index: 100; display: flex; align-items: center; justify-content: space-between; }
             .header-actions { display: flex; align-items: center; gap: 15px; }
-            .sync-status { font-size: 12px; color: #e8eaed; }
+            .sync-status { font-size: 12px; color: #e8eaed; display: flex; align-items: center; gap: 5px;}
+            .syncing-icon { animation: spin 1s linear infinite; display: none; }
+            @keyframes spin { 100% { transform: rotate(360deg); } }
             
             .btn-icon-top { background: rgba(255,255,255,0.2); color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 5px; font-size: 13px; font-weight: bold; }
             .btn-icon-top:hover { background: rgba(255,255,255,0.3); }
@@ -20,17 +21,21 @@
 
             .app-container { display: flex; max-width: 1200px; margin: 20px auto; padding: 0 15px; gap: 20px; align-items: flex-start; }
             .sidebar-servicios { width: 25%; background: white; border-radius: 8px; padding: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.12); position: sticky; top: 80px; }
-            .sidebar-servicios h3 { margin-top: 0; color: #1a73e8; border-bottom: 2px solid #e8f0fe; padding-bottom: 10px; font-size: 16px; }
+            .sidebar-servicios h3 { margin-top: 0; color: #1a73e8; border-bottom: 2px solid #e8f0fe; padding-bottom: 10px; font-size: 16px; text-transform: uppercase;}
             .servicio-item { padding: 10px; border-bottom: 1px solid #f1f3f4; font-weight: 500; color: #5f6368; display: flex; justify-content: space-between; }
             .servicio-item .badge { background: #1a73e8; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px; }
             
             .main-pacientes { width: 75%; }
             .empty-state { text-align: center; color: #5f6368; margin-top: 50px; font-size: 16px; width: 100%; }
             
-            /* DISEÑO TIPO TABLA APPSHEET PARA PACIENTES */
+            /* Títulos de Sección PRN vs Diaria */
+            .section-title { font-size: 18px; color: #1a73e8; font-weight: bold; margin-top: 20px; margin-bottom: 10px; border-bottom: 2px solid #e8f0fe; padding-bottom: 5px;}
+            .section-prn { color: #e53935; border-bottom-color: #ffcdd2; }
+
             .grupo-paciente { background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.12); margin-bottom: 15px; overflow: hidden; }
             .header-paciente { background-color: #f8f9fa; padding: 10px 15px; font-weight: bold; color: #202124; border-bottom: 2px solid #1a73e8; display: flex; align-items: center; }
-            .header-paciente i { margin-right: 8px; color: #1a73e8; }
+            .header-prn { border-bottom-color: #e53935; }
+            .header-paciente i { margin-right: 8px; color: #5f6368; }
             
             .med-table { width: 100%; border-collapse: collapse; font-size: 14px; }
             .med-table th { background: #f1f3f4; color: #5f6368; text-align: left; padding: 8px 10px; font-size: 12px; font-weight: 500; }
@@ -56,7 +61,17 @@
             .modal-body { padding: 15px; max-height: 70vh; overflow-y: auto; }
             .form-group { margin-bottom: 12px; }
             .form-group label { display: block; font-size: 12px; font-weight: bold; color: #5f6368; margin-bottom: 4px; }
-            .form-group input { width: 100%; padding: 10px; border: 1px solid #dadce0; border-radius: 4px; font-size: 14px; box-sizing: border-box; text-transform: uppercase; }
+            .form-group input[type="text"], .form-group input[type="number"], .form-group input[type="search"] { width: 100%; padding: 10px; border: 1px solid #dadce0; border-radius: 4px; font-size: 14px; box-sizing: border-box; text-transform: uppercase; }
+            .form-group input:focus { border-color: #1a73e8; outline: none; border-width: 2px; }
+            
+            /* Radio buttons tipo pastilla */
+            .radio-group { display: flex; gap: 10px; margin-bottom: 15px; }
+            .radio-label { flex: 1; text-align: center; padding: 8px; border: 1px solid #dadce0; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 14px; color: #5f6368; }
+            .radio-group input[type="radio"] { display: none; }
+            .radio-group input[type="radio"]:checked + .radio-label { background: #1a73e8; color: white; border-color: #1a73e8; }
+            .radio-group input[type="radio"][value="PRN"]:checked + .radio-label { background: #e53935; border-color: #e53935; }
+
+            input[type="search"]::-webkit-search-decoration, input[type="search"]::-webkit-search-cancel-button { display: none; }
             .btn-submit { width: 100%; background: #1a73e8; color: white; border: none; padding: 12px; border-radius: 4px; font-weight: bold; font-size: 15px; cursor: pointer; margin-top: 10px;}
             
             #printArea { display: none; }
@@ -69,26 +84,12 @@
             #printArea, #printArea * { visibility: visible; }
             #printArea { position: absolute; left: 0; top: 0; width: 100%; }
             
-            .print-table { 
-                width: 100%; 
-                border-collapse: collapse; 
-                table-layout: fixed; 
-            }
-            .print-table td { 
-                width: 25%; /* Obliga a 4 columnas exactas */
-                height: 23.5mm; /* Altura de la etiqueta */
-                padding: 1.5mm; 
-                border: 1px dashed #ccc; /* Guía de corte sutil */
-                overflow: hidden;
-                vertical-align: top;
-            }
-            .etiqueta-print { 
-                font-family: 'Calibri', 'Arial', sans-serif; 
-                font-size: 6pt; /* Misma letra que Google Docs */
-                line-height: 1.0; /* Sin espacios extra */
-            }
+            .print-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+            .print-table td { width: 25%; height: 23.5mm; padding: 1.5mm; border: 1px dashed #ccc; overflow: hidden; vertical-align: top; }
+            .etiqueta-print { font-family: 'Calibri', 'Arial', sans-serif; font-size: 6pt; line-height: 1.0; }
             .etiqueta-print p { margin: 0 0 1.5px 0; padding: 0; }
             .bold { font-weight: bold; }
+            .prn-mark { color: red; border: 1px solid red; padding: 0 2px; margin-right: 3px; border-radius: 2px;}
         }
     </style>
 </head>
@@ -97,7 +98,10 @@
     <div class="app-header">
         <div>Sistema de Etiquetas IV</div>
         <div class="header-actions">
-            <span class="sync-status" id="dbStatus">Conectando...</span>
+            <span class="sync-status">
+                <i class="material-icons syncing-icon" id="syncIcon">sync</i>
+                <span id="dbStatus">Conectando...</span>
+            </span>
             <button id="btnEliminarSeleccionados" class="btn-icon-top btn-danger" title="Eliminar seleccionados"><i class="material-icons" style="font-size: 18px;">delete</i> BORRAR</button>
             <button id="btnLimpiarTodo" class="btn-icon-top" title="Borrar todo"><i class="material-icons" style="font-size: 18px;">delete_sweep</i> VACIAR</button>
         </div>
@@ -115,41 +119,39 @@
 
     <div class="bottom-bar">
         <button class="btn-action btn-print" id="btnImprimir"><i class="material-icons">print</i> IMPRIMIR DIRECTO</button>
-        <button class="btn-action btn-save" id="btnGuardar"><i class="material-icons">cloud_upload</i> GUARDAR EN DRIVE</button>
+        <button class="btn-action btn-save" id="btnGuardar"><i class="material-icons">cloud_upload</i> GENERAR EN DRIVE</button>
     </div>
 
-    <!-- FORMULARIO HACKEADO CONTRA AUTOCOMPLETADO DE MAC -->
+    <!-- FORMULARIO -->
     <div class="modal-overlay" id="modalForm">
         <div class="modal-content">
             <div class="modal-header">
-                <span id="modalTitle">Nueva Etiqueta (Usa ENTER)</span>
+                <span id="modalTitle">Nueva Etiqueta</span>
                 <button class="modal-close" id="btnCloseModal"><i class="material-icons">close</i></button>
             </div>
             <div class="modal-body">
-                <!-- Data-form-type engaña al navegador -->
                 <form id="etiquetaForm" data-form-type="other" autocomplete="off" spellcheck="false">
                     <input type="hidden" id="etiquetaId"> 
                     
-                    <div class="form-group"><label>CAMA</label>
-                        <input type="number" id="cama" required autocomplete="new-password"></div>
-                    
-                    <div class="form-group"><label>NOMBRE DEL PACIENTE</label>
-                        <input type="text" id="nombre" required autocomplete="new-password"></div>
-                    
-                    <div class="form-group"><label>MEDICAMENTO</label>
-                        <input type="text" id="medicamento" list="listaMedicamentos" required autocomplete="new-password" placeholder="Escribe y presiona Enter">
+                    <div class="radio-group">
+                        <input type="radio" id="tipoDiaria" name="tipoDosis" value="DIARIA" checked>
+                        <label for="tipoDiaria" class="radio-label">DOSIS DIARIA</label>
+                        
+                        <input type="radio" id="tipoPrn" name="tipoDosis" value="PRN">
+                        <label for="tipoPrn" class="radio-label">DOSIS PRN</label>
+                    </div>
+
+                    <div class="form-group"><label>CAMA</label><input type="search" id="cama" required autocomplete="nope"></div>
+                    <div class="form-group"><label>NOMBRE DEL PACIENTE</label><input type="search" id="nombre" required autocomplete="nope"></div>
+                    <div class="form-group"><label>MEDICAMENTO</label><input type="search" id="medicamento" list="listaMedicamentos" required autocomplete="nope" placeholder="Escribe y presiona Enter">
                         <datalist id="listaMedicamentos"></datalist>
                     </div>
-                    
-                    <div class="form-group"><label>DOSIS (Número)</label>
-                        <input type="number" id="dosis" step="0.01" required autocomplete="new-password"></div>
-                    
-                    <div class="form-group"><label>HORARIO</label>
-                        <input type="text" id="horario" required autocomplete="new-password"></div>
+                    <div class="form-group"><label>DOSIS (Número)</label><input type="search" id="dosis" required autocomplete="nope"></div>
+                    <div class="form-group"><label>HORARIO</label><input type="search" id="horario" required autocomplete="nope"></div>
                     
                     <div class="form-group" id="grupoVolManual" style="display: none;">
-                        <label>VOL. FINAL MANUAL (ml) <span style="font-weight: normal; color: #1a73e8;">(Opcional)</span></label>
-                        <input type="number" id="volFinalManual" step="0.01" autocomplete="new-password" placeholder="En blanco = automático">
+                        <label>VOL. FINAL MANUAL (ml)</label>
+                        <input type="search" id="volFinalManual" autocomplete="nope" placeholder="En blanco = automático">
                     </div>
 
                     <button type="submit" class="btn-submit" id="btnSubmitForm">AGREGAR ETIQUETA</button>
