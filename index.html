@@ -3,83 +3,69 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SISTEMA IV</title>
+    <title>SISTEMA IV - ESTABLE</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <style>
-        /* ESTILOS DE INTERFAZ (PANTALLA) */
         @media screen {
-            body { font-family: 'Roboto', sans-serif; background-color: #f1f3f4; margin: 0; padding-top: 110px; padding-bottom: 90px; }
-            
-            /* Cabecera Fija */
+            body { font-family: 'Roboto', sans-serif; background-color: #f1f3f4; margin: 0; padding-top: 115px; padding-bottom: 90px; }
             .header { background: #1a73e8; color: white; position: fixed; top: 0; width: 100%; height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; z-index: 1000; box-sizing: border-box; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
-            .sync-tag { font-size: 10px; background: rgba(0,0,0,0.2); padding: 4px 8px; border-radius: 4px; }
-            
-            /* Pestañas Fijas */
             .tabs { background: white; position: fixed; top: 60px; width: 100%; height: 50px; display: flex; z-index: 900; border-bottom: 1px solid #ddd; }
             .tab { flex: 1; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 13px; color: #5f6368; cursor: pointer; border-bottom: 3px solid transparent; }
             .tab.active { color: #1a73e8; border-bottom-color: #1a73e8; background: #e8f0fe; }
             .tab.active-prn { color: #d32f2f; border-bottom-color: #d32f2f; background: #ffebee; }
             .tab.active-lotes { color: #34a853; border-bottom-color: #34a853; background: #e8f5e9; }
-
             .container { display: flex; max-width: 1200px; margin: 0 auto; padding: 0 10px; gap: 15px; }
-            
-            /* Sidebar Servicios */
             .sidebar { width: 200px; background: white; border-radius: 8px; padding: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); position: sticky; top: 125px; height: fit-content; }
-            .srv-item { padding: 10px; border-radius: 4px; cursor: pointer; color: #5f6368; font-size: 14px; display: flex; justify-content: space-between; }
+            .srv-item { padding: 10px; border-radius: 4px; cursor: pointer; color: #5f6368; font-size: 13px; display: flex; justify-content: space-between; }
             .srv-item.active { background: #e8f0fe; color: #1a73e8; font-weight: bold; }
-
             .content { flex: 1; }
-
-            /* Tarjetas de Pacientes */
             .card { background: white; border-radius: 8px; margin-bottom: 15px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
             .card-header { padding: 12px; background: #f8f9fa; border-bottom: 2px solid #1a73e8; font-weight: bold; font-size: 14px; }
             .med-table { width: 100%; border-collapse: collapse; }
-            .med-table td, .med-table th { padding: 10px; border-bottom: 1px solid #eee; font-size: 13px; text-align: left; }
-            
-            /* Botón Flotante + */
+            .med-table td { padding: 10px; border-bottom: 1px solid #eee; font-size: 13px; }
             .fab { position: fixed; bottom: 100px; right: 25px; width: 60px; height: 60px; border-radius: 50%; background: #1a73e8; color: white; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 1100; }
-
-            /* Barra de Acción Inferior */
             .action-bar { position: fixed; bottom: 0; width: 100%; background: white; padding: 15px; display: flex; justify-content: center; gap: 15px; border-top: 1px solid #ddd; box-sizing: border-box; z-index: 1000; }
-            .btn { border: none; padding: 12px 25px; border-radius: 8px; color: white; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 14px; }
-
-            /* Modales */
+            .btn { border: none; padding: 12px 20px; border-radius: 8px; color: white; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 13px; }
             .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center; }
-            .modal { background: white; width: 90%; max-width: 450px; border-radius: 12px; padding: 20px; box-sizing: border-box; }
+            .modal { background: white; width: 92%; max-width: 450px; border-radius: 12px; padding: 20px; box-sizing: border-box; }
             .field { margin-bottom: 15px; }
-            .field label { display: block; font-size: 11px; font-weight: bold; color: #1a73e8; margin-bottom: 5px; }
-            .field input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
-
-            /* OCULTAR ÁREAS DE IMPRESIÓN EN PANTALLA */
+            .field label { display: block; font-size: 11px; font-weight: bold; color: #1a73e8; margin-bottom: 4px; }
+            .field input { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+            
+            /* Ocultar áreas de impresión de la vista de usuario */
             #print-area, #sumatoria-area { display: none !important; }
         }
 
-        /* ESTILOS DE IMPRESIÓN */
+        /* ESTILOS DE IMPRESIÓN (EL NAVEGADOR SOLO VE ESTO AL IMPRIMIR) */
         @media print {
+            body { padding: 0; margin: 0; background: white; }
             body * { display: none !important; }
             
-            /* Imprimir Etiquetas */
+            /* Área de Etiquetas */
             #print-area, #print-area * { display: block !important; }
             #print-area { position: absolute; left: 0; top: 0; width: 100%; }
-            .label-grid { width: 100%; border-collapse: collapse; table-layout: fixed; }
-            .label-cell { width: 25%; height: 23.5mm; border: 1px dashed #ccc; padding: 1.5mm; font-size: 6.2pt; vertical-align: top; overflow: hidden; font-family: sans-serif; }
+            .label-grid { width: 100%; border-collapse: collapse; table-layout: fixed; margin: 0; }
+            .label-cell { width: 25%; height: 23.5mm; border: 1px dashed #ccc; padding: 1.2mm; font-size: 6.2pt; vertical-align: top; overflow: hidden; font-family: sans-serif; box-sizing: border-box; }
+            .bold { font-weight: bold; }
 
-            /* Imprimir Suministros */
+            /* Área de Suministros - Tabla completa y centrada */
             #sumatoria-area, #sumatoria-area * { display: block !important; }
-            #sumatoria-area { position: absolute; left: 0; top: 0; width: 100%; padding: 20px; font-family: sans-serif; }
-            .sum-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-            .sum-table th, .sum-table td { border: 1px solid black; padding: 5px; font-size: 8pt; text-align: center; }
-            .expired { color: red; text-decoration: underline; font-weight: bold; }
+            #sumatoria-area { position: absolute; left: 0; top: 0; width: 100%; padding: 10mm; box-sizing: border-box; font-family: sans-serif; }
+            .sum-title { text-align: center; font-size: 16pt; margin-bottom: 5px; }
+            .sum-table { width: 100%; border-collapse: collapse; margin: 0 auto; }
+            .sum-table th, .sum-table td { border: 1px solid black; padding: 4px; font-size: 8pt; text-align: center; }
+            .sum-table th { background-color: #f2f2f2; }
+            .expired-row { color: red; text-decoration: underline; font-weight: bold; }
         }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <div style="font-weight: bold;">SISTEMA CENTRAL IV</div>
-        <div class="header-actions">
-            <span id="dbStatus" class="sync-tag">CONECTANDO...</span>
+        <div style="font-weight: bold; font-size: 16px;">SISTEMA CENTRAL IV</div>
+        <div class="header-actions" style="display:flex; align-items:center; gap:10px;">
+            <span id="dbStatus" class="sync-tag">...</span>
             <button id="btnSum" class="btn" style="background:#673ab7; padding:8px;"><i class="material-icons">calculate</i></button>
             <button id="btnDel" class="btn" style="background:#d32f2f; padding:8px;"><i class="material-icons">delete</i></button>
         </div>
@@ -101,24 +87,24 @@
     <button id="btnAdd" class="fab" onclick="openEtiqModal()"><i class="material-icons" style="font-size:35px;">add</i></button>
 
     <div id="bottom-bar" class="action-bar">
-        <button class="btn" style="background:#ff9800" onclick="printLabels()"><i class="material-icons">print</i> IMPRIMIR</button>
-        <button class="btn" style="background:#34a853" id="btn-drive" onclick="sendDrive()"><i class="material-icons">cloud_upload</i> DRIVE</button>
+        <button class="btn" style="background:#ff9800" onclick="printLabels()"><i class="material-icons">print</i> IMPRIMIR ETIQUETAS</button>
+        <button class="btn" style="background:#34a853" id="btn-drive" onclick="sendDrive()"><i class="material-icons">cloud_upload</i> ENVIAR DRIVE</button>
     </div>
 
-    <!-- MODAL ETIQUETAS -->
+    <!-- MODALES -->
     <div id="modal-etiq" class="overlay">
         <div class="modal">
-            <h3 id="modal-title" style="margin-top:0">Nueva Etiqueta</h3>
+            <h3 id="modal-title" style="margin-top:0; color:#1a73e8;">Nueva Etiqueta</h3>
             <form id="form-etiq" onsubmit="saveEtiq(event)">
                 <input type="hidden" id="f-id">
                 <div class="field"><label>Cama</label><input type="text" id="f-cama" required></div>
-                <div class="field"><label>Paciente</label><input type="text" id="f-nombre" style="text-transform:uppercase" required></div>
+                <div class="field"><label>Nombre del Paciente</label><input type="text" id="f-nombre" style="text-transform:uppercase" required></div>
                 <div class="field"><label>Medicamento</label>
                     <input type="text" id="f-med" list="datalist-med" style="text-transform:uppercase" required>
                     <datalist id="datalist-med"></datalist>
                 </div>
                 <div class="field"><label>Dosis</label><input type="number" step="0.01" id="f-dosis" required></div>
-                <div class="field"><label>Horario</label><input type="text" id="f-hora"></div>
+                <div class="field"><label>Horario</label><input type="text" id="f-hora" placeholder="Ej: 08:00"></div>
                 <div id="f-vf-box" class="field" style="display:none"><label>Volumen Final Manual</label><input type="number" step="0.1" id="f-vf"></div>
                 <button type="submit" class="btn" style="background:#1a73e8; width:100%; justify-content:center;">GUARDAR</button>
                 <button type="button" onclick="closeModals()" style="width:100%; margin-top:10px; background:none; border:none; color:#666; cursor:pointer;">CANCELAR</button>
@@ -126,7 +112,6 @@
         </div>
     </div>
 
-    <!-- MODAL LOTES -->
     <div id="modal-lote" class="overlay">
         <div class="modal">
             <h3 id="l-title" style="margin-top:0; color:#34a853;">Editar Lote</h3>
@@ -136,13 +121,13 @@
                 <div class="field"><label>Lote</label><input type="text" id="l-lote" style="text-transform:uppercase"></div>
                 <div class="field"><label>Caducidad</label><input type="month" id="l-cad"></div>
                 <div class="field"><label>Laboratorio</label><input type="text" id="l-lab" style="text-transform:uppercase"></div>
-                <button type="submit" class="btn" style="background:#34a853; width:100%; justify-content:center;">ACTUALIZAR EXCEL</button>
+                <button type="submit" class="btn" style="background:#34a853; width:100%; justify-content:center;">ACTUALIZAR DATOS</button>
                 <button type="button" onclick="closeModals()" style="width:100%; margin-top:10px; background:none; border:none; color:#666; cursor:pointer;">CANCELAR</button>
             </form>
         </div>
     </div>
 
-    <!-- ÁREAS DE IMPRESIÓN (INVISIBLES) -->
+    <!-- ÁREAS OCULTAS -->
     <div id="print-area"></div>
     <div id="sumatoria-area"></div>
 
