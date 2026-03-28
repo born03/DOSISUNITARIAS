@@ -20,22 +20,15 @@ const inputVolFinalManual = document.getElementById('input_volFinalManual');
 const grupoVolManual = document.getElementById('grupoVolManual');
 const syncIcon = document.getElementById('syncIcon');
 const dbStatus = document.getElementById('dbStatus');
-const btnGuardarDrive = document.getElementById('btnGuardar'); // Seleccionamos el botón de Drive
+const btnGuardarDrive = document.getElementById('btnGuardar');
 
-// CONTROL DE PESTAÑAS Y SERVICIOS
+// CONTROL DE VISTAS
 document.addEventListener('cambioTab', (e) => {
     currentTab = e.detail;
     document.getElementById('tabDiaria').className = currentTab === 'DIARIA' ? 'tab-btn active' : 'tab-btn';
     document.getElementById('tabPrn').className = currentTab === 'PRN' ? 'tab-btn active-prn' : 'tab-btn';
     currentServicio = "TODOS"; 
-    
-    // MAGIA AQUÍ: Ocultar botón Drive si estamos en PRN
-    if (currentTab === "PRN") {
-        btnGuardarDrive.style.display = 'none';
-    } else {
-        btnGuardarDrive.style.display = 'flex';
-    }
-
+    btnGuardarDrive.style.display = (currentTab === "PRN") ? 'none' : 'flex';
     renderizarInterfaz();
 });
 
@@ -52,34 +45,39 @@ document.getElementById('btnOpenModal').addEventListener('click', () => {
     modal.style.display = 'flex'; 
     inputCama.focus();
 });
-document.getElementById('btnCloseModal').addEventListener('click', () => modal.style.display = 'none');
 
 inputCama.addEventListener('input', () => {
     const paciente = etiquetasPendientes.find(e => String(e.CAMA) === String(inputCama.value));
     inputNombre.value = paciente ? paciente.NOMBRE : ''; 
 });
 
+// MOTOR DE CARGA Y SINCRONIZACIÓN
 async function fetchSyncRealTime() {
     if (bloqueoSincronizacion || modal.style.display === 'flex') return; 
-    
     try {
         const response = await fetch(URL_APPS_SCRIPT);
         const data = await response.json();
         dbMedicamentos = data.medicamentos || [];
         const datosNube = data.activas || [];
         
+        // REPARACIÓN: Poblar lista de medicamentos
+        const dataList = document.getElementById('listaMedicamentos');
+        if(dataList.options.length === 0) {
+            dbMedicamentos.forEach(med => {
+                let opt = document.createElement('option');
+                opt.value = med.MEDICAMENTO;
+                dataList.appendChild(opt);
+            });
+        }
+
         if(JSON.stringify(datosNube) !== JSON.stringify(etiquetasPendientes)) {
             etiquetasPendientes = datosNube;
             renderizarInterfaz(); 
         }
         dbStatus.innerText = "Sincronizado";
-    } catch (error) {
-        dbStatus.innerText = "Offline";
-    }
+    } catch (error) { dbStatus.innerText = "Offline"; }
 }
-fetchSyncRealTime().then(() => {
-    setInterval(fetchSyncRealTime, 4000); 
-});
+fetchSyncRealTime().then(() => { setInterval(fetchSyncRealTime, 4000); });
 
 async function pushToNube() {
     bloqueoSincronizacion = true; 
@@ -93,14 +91,11 @@ async function pushToNube() {
             headers: { 'Content-Type': 'text/plain;charset=utf-8' }
         });
         dbStatus.innerText = "Sincronizado";
-    } catch (e) {
-        dbStatus.innerText = "Pendiente...";
-    } finally {
-        syncIcon.style.display = 'none';
-        bloqueoSincronizacion = false; 
-    }
+    } catch (e) { dbStatus.innerText = "Error"; }
+    finally { syncIcon.style.display = 'none'; bloqueoSincronizacion = false; }
 }
 
+// LÓGICA MATEMÁTICA
 function calcularServicio(cama) {
     const c = Number(cama);
     if (c >= 220 && c <= 245) return "ONCOLOGIA";
@@ -113,12 +108,12 @@ function calcularServicio(cama) {
 }
 
 function calcularVolMed(dosis, presentacion) {
-    if (!presentacion || isNaN(presentacion) || Number(presentacion) === 0) return "";
+    if (!presentacion || isNaN(presentacion) || Number(presentacion) === 0) return 0;
     let calculo = dosis / Number(presentacion);
     return calculo < 0.1 ? Math.round(calculo * 100) / 100.0 : Math.round(calculo * 10) / 10.0;
 }
 function calcularVolFinal(dosis, concentracion, diluyente) {
-    if (!concentracion || isNaN(concentracion) || Number(concentracion) === 0) return "";
+    if (!concentracion || isNaN(concentracion) || Number(concentracion) === 0) return 0;
     let division = dosis / Number(concentracion);
     if (!diluyente || String(diluyente).trim() === "") return division;
     if (division <= 1) return 1;
@@ -126,65 +121,36 @@ function calcularVolFinal(dosis, concentracion, diluyente) {
     return Math.ceil(division / 5.0) * 5;
 }
 
+// GUARDAR
 form.addEventListener('submit', function(e) {
     e.preventDefault();
-    bloqueoSincronizacion = true; 
-
     const idActual = inputId.value;
-    const tipo = currentTab; 
-    const cama = inputCama.value;
-    const nombre = inputNombre.value.toUpperCase();
     let nombreMedInput = inputMed.value.toUpperCase().trim();
-    const dosis = parseFloat(inputDosis.value);
-    const horario = inputHorario.value.toUpperCase() || ""; 
-    const volFinalManualStr = inputVolFinalManual.value;
+    const configMed = dbMedicamentos.find(m => String(m.MEDICAMENTO).toUpperCase().startsWith(nombreMedInput) || String(m.MEDICAMENTO).toUpperCase().includes(nombreMedInput));
+    
+    if (configMed) nombreMedInput = configMed.MEDICAMENTO; 
+    else return alert("Medicamento no encontrado.");
 
-    let configMed = dbMedicamentos.find(m => String(m.MEDICAMENTO).toUpperCase() === nombreMedInput);
-    if (!configMed) {
-        configMed = dbMedicamentos.find(m => String(m.MEDICAMENTO).toUpperCase().startsWith(nombreMedInput));
-        if (!configMed) configMed = dbMedicamentos.find(m => String(m.MEDICAMENTO).toUpperCase().includes(nombreMedInput));
-        if (configMed) nombreMedInput = configMed.MEDICAMENTO; 
-        else {
-            bloqueoSincronizacion = false;
-            return alert("Medicamento no encontrado en la base de datos.");
-        }
-    }
-
-    const volFinalDefinitivo = volFinalManualStr !== "" ? parseFloat(volFinalManualStr) : calcularVolFinal(dosis, configMed.CONCENTRACION, configMed.DILUYENTE);
+    const dosisVal = parseFloat(inputDosis.value);
+    const volMed = calcularVolMed(dosisVal, configMed.PRESENTACION);
+    const volFinalDef = inputVolFinalManual.value !== "" ? parseFloat(inputVolFinalManual.value) : calcularVolFinal(dosisVal, configMed.CONCENTRACION, configMed.DILUYENTE);
 
     const etiquetaObj = {
         id: idActual || (Date.now().toString(36) + Math.random().toString(36).substr(2)), 
-        TIPO: tipo, CAMA: cama, NOMBRE: nombre, MEDICAMENTO: nombreMedInput, DOSIS: dosis, HORARIO: horario,
-        SERVICIO: calcularServicio(cama), "VOL MED": calcularVolMed(dosis, configMed.PRESENTACION),
-        "VOL FINAL": volFinalDefinitivo,
-        SOLUCION: configMed.DILUYENTE || "", TIEMPO: configMed.TIEMPO || "",
-        UNIDADES: configMed.UNIDADES || "", VIA: configMed.VIA || "",
-        fecha_registro: new Date().toISOString()
+        TIPO: currentTab, CAMA: inputCama.value, NOMBRE: inputNombre.value.toUpperCase(), MEDICAMENTO: nombreMedInput, DOSIS: dosisVal, HORARIO: inputHorario.value.toUpperCase(),
+        SERVICIO: calcularServicio(inputCama.value), "VOL MED": volMed, "VOL FINAL": volFinalDef,
+        SOLUCION: configMed.DILUYENTE || "", TIEMPO: configMed.TIEMPO || "", UNIDADES: configMed.UNIDADES || "MG", VIA: configMed.VIA || "IV", fecha_registro: new Date().toISOString()
     };
 
     if (idActual) {
-        const index = etiquetasPendientes.findIndex(e => e.id === idActual);
-        if (index > -1) {
-            const camaVieja = etiquetasPendientes[index].CAMA;
-            const nombreViejo = etiquetasPendientes[index].NOMBRE;
-            etiquetasPendientes[index] = etiquetaObj;
-            if (camaVieja !== cama || nombreViejo !== nombre) {
-                etiquetasPendientes.forEach(e => {
-                    if (e.CAMA === camaVieja && e.NOMBRE === nombreViejo) {
-                        e.CAMA = cama; e.NOMBRE = nombre; e.SERVICIO = calcularServicio(cama);
-                    }
-                });
-            }
-        }
+        const idx = etiquetasPendientes.findIndex(e => e.id === idActual);
+        if (idx > -1) etiquetasPendientes[idx] = etiquetaObj;
         modal.style.display = 'none'; 
     } else {
         etiquetasPendientes.push(etiquetaObj);
-        inputMed.value = ''; inputDosis.value = ''; inputHorario.value = '';
-        inputMed.focus(); 
+        inputMed.value = ''; inputDosis.value = ''; inputHorario.value = ''; inputMed.focus(); 
     }
-
-    renderizarInterfaz(); 
-    pushToNube(); 
+    renderizarInterfaz(); pushToNube(); 
 });
 
 function limpiarFormulario() {
@@ -195,220 +161,150 @@ function limpiarFormulario() {
 document.getElementById('listaPacientes').addEventListener('click', (e) => {
     const btnEdit = e.target.closest('.btn-edit');
     const btnSwap = e.target.closest('.btn-swap');
-
     if (btnEdit) {
-        bloqueoSincronizacion = true; 
-        const idToEdit = btnEdit.dataset.id;
-        const etiqueta = etiquetasPendientes.find(et => et.id === idToEdit);
-        if (etiqueta) {
-            inputId.value = etiqueta.id;
-            inputCama.value = etiqueta.CAMA;
-            inputNombre.value = etiqueta.NOMBRE;
-            inputMed.value = etiqueta.MEDICAMENTO;
-            inputDosis.value = etiqueta.DOSIS;
-            inputHorario.value = etiqueta.HORARIO;
-            
-            const configMed = dbMedicamentos.find(m => String(m.MEDICAMENTO).toUpperCase() === etiqueta.MEDICAMENTO);
-            const calcVol = configMed ? calcularVolFinal(etiqueta.DOSIS, configMed.CONCENTRACION, configMed.DILUYENTE) : "";
-            inputVolFinalManual.value = (String(etiqueta["VOL FINAL"]) !== String(calcVol)) ? etiqueta["VOL FINAL"] : '';
-
-            document.getElementById('modalTitle').innerText = `Editar Etiqueta`;
-            document.getElementById('btnSubmitForm').innerText = "ACTUALIZAR CAMBIOS";
-            grupoVolManual.style.display = 'block'; 
-            modal.style.display = 'flex';
+        const etiq = etiquetasPendientes.find(et => et.id === btnEdit.dataset.id);
+        if (etiq) {
+            inputId.value = etiq.id; inputCama.value = etiq.CAMA; inputNombre.value = etiq.NOMBRE;
+            inputMed.value = etiq.MEDICAMENTO; inputDosis.value = etiq.DOSIS; inputHorario.value = etiq.HORARIO;
+            grupoVolManual.style.display = 'block'; modal.style.display = 'flex';
         }
     }
-
     if (btnSwap) {
-        bloqueoSincronizacion = true;
-        const idToSwap = btnSwap.dataset.id;
-        const index = etiquetasPendientes.findIndex(et => et.id === idToSwap);
-        if (index > -1) {
-            etiquetasPendientes[index].TIPO = etiquetasPendientes[index].TIPO === "DIARIA" ? "PRN" : "DIARIA";
-            renderizarInterfaz();
-            pushToNube();
-        }
+        const idx = etiquetasPendientes.findIndex(et => et.id === btnSwap.dataset.id);
+        if (idx > -1) { etiquetasPendientes[idx].TIPO = etiquetasPendientes[idx].TIPO === "DIARIA" ? "PRN" : "DIARIA"; renderizarInterfaz(); pushToNube(); }
     }
 });
 
 document.getElementById('btnEliminarSeleccionados').addEventListener('click', () => {
-    const checkboxes = document.querySelectorAll('.med-checkbox:checked');
-    if(checkboxes.length === 0) return alert("Selecciona etiquetas con las casillas.");
-    
-    bloqueoSincronizacion = true; 
-    if(confirm(`¿Eliminar ${checkboxes.length} etiquetas?`)) {
-        const idsToDelete = Array.from(checkboxes).map(cb => cb.dataset.id);
-        etiquetasPendientes = etiquetasPendientes.filter(e => !idsToDelete.includes(e.id));
-        renderizarInterfaz();
-        pushToNube();
-    } else {
-        bloqueoSincronizacion = false; 
-    }
+    const boxes = document.querySelectorAll('.med-checkbox:checked');
+    if(boxes.length === 0 || !confirm("¿Eliminar seleccionados?")) return;
+    const ids = Array.from(boxes).map(cb => cb.dataset.id);
+    etiquetasPendientes = etiquetasPendientes.filter(e => !ids.includes(e.id));
+    renderizarInterfaz(); pushToNube();
 });
 
 function renderizarInterfaz() {
-    const panelServicios = document.getElementById('listaServicios');
-    const panelPacientes = document.getElementById('listaPacientes');
-    
-    const listaVisiblePestaña = etiquetasPendientes.filter(e => (e.TIPO || "DIARIA") === currentTab);
+    const panelSrv = document.getElementById('listaServicios');
+    const panelPac = document.getElementById('listaPacientes');
+    const listaPestana = etiquetasPendientes.filter(e => (e.TIPO || "DIARIA") === currentTab);
 
-    if (listaVisiblePestaña.length === 0) {
-        panelServicios.innerHTML = '<div style="color: #9aa0a6; text-align: center; margin-top: 20px;">Sin pacientes</div>';
-        panelPacientes.innerHTML = '<div class="empty-state"><i class="material-icons" style="font-size: 48px; color: #dadce0;">assignment</i><br>No hay etiquetas aquí</div>';
-        return;
+    if (listaPestana.length === 0) {
+        panelSrv.innerHTML = ''; panelPac.innerHTML = '<div class="empty-state">No hay etiquetas aquí</div>'; return;
     }
 
-    const conteoServicios = {};
-    listaVisiblePestaña.forEach(etiq => {
-        conteoServicios[etiq.SERVICIO] = (conteoServicios[etiq.SERVICIO] || 0) + 1;
+    const conteoSrv = {};
+    listaPestana.forEach(e => conteoSrv[e.SERVICIO] = (conteoSrv[e.SERVICIO] || 0) + 1);
+
+    panelSrv.innerHTML = `<div class="servicio-item ${currentServicio === 'TODOS' ? 'active' : ''}" onclick="cambiarServicio('TODOS')">TODOS <span class="badge">${listaPestana.length}</span></div>` +
+        Object.keys(conteoSrv).sort().map(s => `<div class="servicio-item ${currentServicio === s ? 'active' : ''}" onclick="cambiarServicio('${s}')">${s} <span class="badge">${conteoSrv[s]}</span></div>`).join('');
+
+    const finalData = currentServicio === 'TODOS' ? listaPestana : listaPestana.filter(e => e.SERVICIO === currentServicio);
+    const grupos = {};
+    finalData.forEach(e => {
+        const key = `Cama ${e.CAMA} - ${e.NOMBRE}`;
+        if (!grupos[key]) grupos[key] = []; grupos[key].push(e);
     });
 
-    let htmlServicios = `<div class="servicio-item ${currentServicio === 'TODOS' ? 'active' : ''}" onclick="cambiarServicio('TODOS')">
-                            <span>TODOS</span> <span class="badge">${listaVisiblePestaña.length}</span>
-                         </div>`;
-                         
-    Object.keys(conteoServicios).sort().forEach(srv => {
-        const activeClass = currentServicio === srv ? 'active' : '';
-        htmlServicios += `<div class="servicio-item ${activeClass}" onclick="cambiarServicio('${srv}')">
-                            <span>${srv}</span> <span class="badge">${conteoServicios[srv]}</span>
-                          </div>`;
-    });
-    panelServicios.innerHTML = htmlServicios;
-
-    const listaFinalVista = currentServicio === 'TODOS' ? listaVisiblePestaña : listaVisiblePestaña.filter(e => e.SERVICIO === currentServicio);
-
-    if(listaFinalVista.length === 0) {
-        panelPacientes.innerHTML = '<div class="empty-state">No hay pacientes en este servicio.</div>';
-        return;
-    }
-
-    const gruposPacientes = {};
-    listaFinalVista.forEach(etiq => {
-        const llavePaciente = `Cama ${etiq.CAMA} - ${etiq.NOMBRE}`;
-        if (!gruposPacientes[etiq.SERVICIO]) gruposPacientes[etiq.SERVICIO] = {};
-        if (!gruposPacientes[etiq.SERVICIO][llavePaciente]) gruposPacientes[etiq.SERVICIO][llavePaciente] = [];
-        gruposPacientes[etiq.SERVICIO][llavePaciente].push(etiq);
-    });
-
-    let htmlPacientes = '';
-    const headerClass = currentTab === "PRN" ? "header-prn" : "";
-
-    Object.keys(gruposPacientes).sort().forEach(servicio => {
-        const pacientes = gruposPacientes[servicio];
-        Object.keys(pacientes).sort().forEach(pacienteStr => {
-            htmlPacientes += `<div class="grupo-paciente"><div class="header-paciente ${headerClass}"><i class="material-icons">hotel</i> ${pacienteStr}</div>`;
-            htmlPacientes += `<div class="table-responsive"><table class="med-table">
-                                <tr>
-                                    <th style="width: 25px;"></th>
-                                    <th>MEDICAMENTO</th>
-                                    <th>DOSIS</th>
-                                    <th>HORA</th>
-                                    <th>VF</th>
-                                    <th style="text-align: right;">ACCIONES</th>
-                                </tr>`;
-            
-            pacientes[pacienteStr].forEach(med => {
-                const iconSwap = currentTab === "DIARIA" ? "arrow_forward" : "arrow_back";
-                const titleSwap = currentTab === "DIARIA" ? "Mover a PRN" : "Mover a DIARIA";
-
-                htmlPacientes += `
+    panelPac.innerHTML = Object.keys(grupos).sort().map(p => `
+        <div class="grupo-paciente">
+            <div class="header-paciente ${currentTab === 'PRN' ? 'header-prn' : ''}"><i class="material-icons">hotel</i> ${p}</div>
+            <div class="table-responsive"><table class="med-table">
+                <tr><th></th><th>MEDICAMENTO</th><th>DOSIS</th><th>HORA</th><th>VF</th><th></th></tr>
+                ${grupos[p].map(m => `
                     <tr>
-                        <td><input type="checkbox" class="med-checkbox" data-id="${med.id}"></td>
-                        <td class="med-name">${med.MEDICAMENTO} <span style="font-size:10px; color:#9aa0a6;">(${med.VIA || 'IV'})</span></td>
-                        <td>${med.DOSIS} <span style="font-size:11px; color:#5f6368;">${med.UNIDADES || "MG"}</span></td>
-                        <td>${med.HORARIO}</td>
-                        <td class="med-vol">${med['VOL FINAL']} ml</td>
+                        <td><input type="checkbox" class="med-checkbox" data-id="${m.id}"></td>
+                        <td class="med-name">${m.MEDICAMENTO} <span style="font-size:10px; color:#9aa0a6;">(${m.VIA})</span></td>
+                        <td>${m.DOSIS} <span style="font-size:10px;">${m.UNIDADES}</span></td>
+                        <td>${m.HORARIO}</td><td>${m['VOL FINAL'] || '0'}ml</td>
                         <td class="actions-cell">
-                            <button class="btn-swap" data-id="${med.id}" title="${titleSwap}"><i class="material-icons" style="font-size:18px;">${iconSwap}</i></button>
-                            <button class="btn-edit" data-id="${med.id}" title="Editar"><i class="material-icons" style="font-size:18px;">edit</i></button>
+                            <button class="btn-swap" data-id="${m.id}"><i class="material-icons" style="font-size:18px;">${currentTab === "DIARIA" ? 'arrow_forward' : 'arrow_back'}</i></button>
+                            <button class="btn-edit" data-id="${m.id}"><i class="material-icons" style="font-size:18px;">edit</i></button>
                         </td>
-                    </tr>`;
-            });
-            htmlPacientes += `</table></div></div>`;
-        });
-    });
-    panelPacientes.innerHTML = htmlPacientes;
+                    </tr>`).join('')}
+            </table></div>
+        </div>`).join('');
 }
 
-function obtenerEtiquetasVista() {
-    return etiquetasPendientes.filter(e => {
-        const matchTab = (e.TIPO || "DIARIA") === currentTab;
-        const matchSrv = currentServicio === 'TODOS' || e.SERVICIO === currentServicio;
-        return matchTab && matchSrv;
-    });
-}
+// --- LÓGICA CALCULADORA (SUMINISTROS) ---
+document.getElementById('btnSuministros').addEventListener('click', () => {
+    const data = etiquetasPendientes.filter(e => e.TIPO === currentTab);
+    if(data.length === 0) return alert("No hay datos en esta pestaña.");
 
-document.getElementById('btnImprimir').addEventListener('click', () => {
-    const aImprimir = obtenerEtiquetasVista();
-    if (aImprimir.length === 0) return alert("No hay etiquetas en esta vista para imprimir.");
-    
-    const printGrid = document.getElementById('printGrid');
-    const hoy = new Date();
-    const fechaStr = `${hoy.getDate().toString().padStart(2, '0')}-${['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'][hoy.getMonth()]}-${hoy.getFullYear().toString().slice(-2)}`;
+    const consolidado = {};
+    const jeringas = { "JERINGA DE INSULINA": 0, "JERINGA DE 3 ML": 0, "JERINGA DE 5 ML": 0, "JERINGA DE 10 ML": 0, "JERINGA DE 20 ML": 0 };
+    const keywordsSC = ['ERITROPOYETINA', 'FILGRASTIM', 'PEG-FILGRASTIM', 'ENOXAPARINA'];
 
-    let tableHTML = '<table class="print-table">';
-    for (let i = 0; i < aImprimir.length; i += 4) {
-        tableHTML += '<tr>';
-        for (let j = 0; j < 4; j++) {
-            if (i + j < aImprimir.length) {
-                let etiq = aImprimir[i + j];
-                
-                let tituloMed = etiq.MEDICAMENTO;
-                let unidad = (etiq.UNIDADES && etiq.UNIDADES !== "null") ? etiq.UNIDADES : "";
-                let via = (etiq.VIA && etiq.VIA !== "null") ? etiq.VIA : "";
-                let tiempo = (etiq.TIEMPO && etiq.TIEMPO !== "null" && etiq.TIEMPO !== "") ? `P/${etiq.TIEMPO}` : "";
-                let solucion = (etiq.SOLUCION && etiq.SOLUCION !== "null") ? etiq.SOLUCION : "";
-                
-                let horarioTexto = (etiq.HORARIO && etiq.HORARIO !== "null") ? etiq.HORARIO : "";
-                let volMed = (etiq["VOL MED"] && String(etiq["VOL MED"]) !== "0" && etiq["VOL MED"] !== "null") ? ` - ${etiq["VOL MED"]}${solucion ? " ML" : ""}` : "";
-                let volFinal = (etiq["VOL FINAL"] && etiq["VOL FINAL"] !== "null" && etiq["VOL FINAL"] !== "") ? `VOL. FINAL: ${etiq['VOL FINAL']} ML` : "VOL. FINAL: ";
-                
-                tableHTML += `
-                <td>
-                    <div class="etiqueta-print">
-                        <p class="bold">NOMBRE: ${etiq.NOMBRE}</p>
-                        <p class="bold">SERVICIO: ${etiq.SERVICIO} &nbsp;&nbsp; CAMA: ${etiq.CAMA}</p>
-                        <p>FECHA: ${fechaStr} &nbsp;&nbsp; ${NOMBRE_QUIMICO}</p>
-                        <p class="bold">${tituloMed} ${etiq.DOSIS} ${unidad}${volMed} ${via} ${tiempo}</p>
-                        <p>${solucion}</p>
-                        <p class="bold">${volFinal} &nbsp;&nbsp; HR: ${horarioTexto}</p>
-                    </div>
-                </td>`;
-            } else {
-                tableHTML += `<td></td>`;
+    data.forEach(e => {
+        consolidado[e.MEDICAMENTO] = (consolidado[e.MEDICAMENTO] || 0) + e.DOSIS;
+        const esSC = keywordsSC.some(k => e.MEDICAMENTO.includes(k));
+        const vMed = parseFloat(e["VOL MED"]) || 0;
+        const vFinal = parseFloat(e["VOL FINAL"]) || 0;
+
+        if (esSC && vFinal <= 1.0 && vFinal > 0) { jeringas["JERINGA DE INSULINA"]++; } 
+        else {
+            if (vMed === 0 && vFinal >= 30) { jeringas["JERINGA DE 20 ML"]++; } 
+            else {
+                let vRef = (vFinal <= 10) ? vFinal : (vMed > 0 ? vMed : vFinal);
+                let res = vRef;
+                while (res > 20) { jeringas["JERINGA DE 20 ML"]++; res -= 20; }
+                if (res > 10) jeringas["JERINGA DE 20 ML"]++;
+                else if (res > 5) jeringas["JERINGA DE 10 ML"]++;
+                else if (res > 3) jeringas["JERINGA DE 5 ML"]++;
+                else if (res > 0) jeringas["JERINGA DE 3 ML"]++;
             }
         }
-        tableHTML += '</tr>';
-    }
-    tableHTML += '</table>';
+    });
+
+    const hoy = new Date();
+    const fechaStr = `${hoy.getDate()}-${hoy.getMonth()+1}-${hoy.getFullYear()} ${hoy.getHours()}:${hoy.getMinutes()}`;
     
-    printGrid.innerHTML = tableHTML;
+    let html = `<h2>REPORTE DE SUMINISTROS - ${currentTab}</h2><h3>FECHA: ${fechaStr}</h3>`;
+    html += `<table class="supply-table"><tr><th>MEDICAMENTO</th><th>TOTAL REQUERIDO</th></tr>`;
+    Object.keys(consolidado).sort().forEach(m => html += `<tr><td>${m}</td><td><b>${Math.round(consolidado[m] * 100) / 100}</b></td></tr>`);
+    html += `</table>`;
+    html += `<h2>JERINGAS NECESARIAS</h2><table class="supply-table"><tr><th>TIPO</th><th>CANTIDAD (Piezas)</th></tr>`;
+    for(let t in jeringas) if(jeringas[t] > 0) html += `<tr><td>${t}</td><td><b>${jeringas[t]}</b></td></tr>`;
+    html += `</table>`;
+
+    document.getElementById('printSupplies').innerHTML = html;
     window.print();
 });
 
-document.getElementById('btnGuardar').addEventListener('click', async () => {
-    // Si el usuario llega a burlar el estilo css, esta validación de seguridad lo bloquea
-    if (currentTab === "PRN") return alert("Las dosis PRN no se guardan en Drive.");
-
-    const aGuardar = obtenerEtiquetasVista();
-    if (aGuardar.length === 0) return alert("No hay etiquetas en esta vista.");
+// IMPRIMIR ETIQUETAS
+document.getElementById('btnImprimir').addEventListener('click', () => {
+    const data = etiquetasPendientes.filter(e => (e.TIPO || "DIARIA") === currentTab && (currentServicio === "TODOS" || e.SERVICIO === currentServicio));
+    if (data.length === 0) return alert("Sin datos.");
     
-    const btn = document.getElementById('btnGuardar');
-    btn.innerHTML = '<i class="material-icons">sync</i> GENERANDO...';
-    btn.disabled = true;
-
-    try {
-        await fetch(URL_APPS_SCRIPT, {
-            method: 'POST',
-            body: JSON.stringify({ action: "DOC", datos: aGuardar }),
-            mode: 'no-cors', 
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' }
-        });
-        alert(`Documento generado con la vista actual.`);
-    } catch (e) {
-        alert("Error al generar en Drive.");
-    } finally {
-        btn.innerHTML = '<i class="material-icons">cloud_upload</i> DRIVE VISTA';
-        btn.disabled = false;
+    const hoy = new Date();
+    const fechaStr = `${hoy.getDate()}-${['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'][hoy.getMonth()]}-${hoy.getFullYear().toString().slice(-2)}`;
+    let tableHTML = '<table class="print-table">';
+    for (let i = 0; i < data.length; i += 4) {
+        tableHTML += '<tr>';
+        for (let j = 0; j < 4; j++) {
+            if (i + j < data.length) {
+                let etiq = data[i+j];
+                let vMedStr = (etiq["VOL MED"] && etiq["VOL MED"] != 0) ? ` - ${etiq["VOL MED"]}${etiq.SOLUCION ? " ML" : ""}` : "";
+                tableHTML += `<td><div class="etiqueta-print">
+                    <p class="bold">NOMBRE: ${etiq.NOMBRE}</p><p class="bold">SRV: ${etiq.SERVICIO} &nbsp; CAMA: ${etiq.CAMA}</p>
+                    <p>FECHA: ${fechaStr} &nbsp; ${NOMBRE_QUIMICO}</p>
+                    <p class="bold">${etiq.MEDICAMENTO} ${etiq.DOSIS}${etiq.UNIDADES}${vMedStr} ${etiq.VIA} ${etiq.TIEMPO ? "P/"+etiq.TIEMPO : ""}</p>
+                    <p>${etiq.SOLUCION || ""}</p>
+                    <p class="bold">VOL. FINAL: ${etiq['VOL FINAL'] || ''} ML &nbsp; HR: ${etiq.HORARIO || ""}</p>
+                </div></td>`;
+            } else tableHTML += '<td></td>';
+        }
+        tableHTML += '</tr>';
     }
+    document.getElementById('printGrid').innerHTML = tableHTML + '</table>';
+    window.print();
+});
+
+// DRIVE
+document.getElementById('btnGuardar').addEventListener('click', async () => {
+    const data = etiquetasPendientes.filter(e => (e.TIPO || "DIARIA") === currentTab && (currentServicio === "TODOS" || e.SERVICIO === currentServicio));
+    if (data.length === 0) return;
+    document.getElementById('btnGuardar').innerText = "GENERANDO...";
+    await fetch(URL_APPS_SCRIPT, { method: 'POST', body: JSON.stringify({ action: "DOC", datos: data }), mode: 'no-cors' });
+    alert("Enviado a Drive.");
+    document.getElementById('btnGuardar').innerHTML = '<i class="material-icons">cloud_upload</i> DRIVE';
 });
