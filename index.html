@@ -15,24 +15,19 @@
             .syncing-icon { animation: spin 1s linear infinite; display: none; font-size: 14px;}
             @keyframes spin { 100% { transform: rotate(360deg); } }
             
-            .btn-icon-top { background: rgba(255,255,255,0.2); color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 5px; font-size: 12px; font-weight: bold; }
-            .btn-danger { background: #dc3545; }
+            .btn-icon-top { background: rgba(255,255,255,0.2); color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 5px; font-size: 12px; font-weight: bold; }
+            .btn-icon-top:hover { background: rgba(255,255,255,0.3); }
+            .btn-calc { background: #673ab7; } /* Color morado para calculadora */
 
             .main-tabs { display: flex; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.12); margin-bottom: 15px; }
             .tab-btn { flex: 1; text-align: center; padding: 15px; font-weight: bold; color: #5f6368; cursor: pointer; border-bottom: 3px solid transparent; transition: 0.2s; font-size: 14px; text-transform: uppercase;}
-            .tab-btn:hover { background-color: #f8f9fa; }
             .tab-btn.active { color: #1a73e8; border-bottom-color: #1a73e8; background-color: #e8f0fe; }
             .tab-btn.active-prn { color: #e53935; border-bottom-color: #e53935; background-color: #ffebee; }
 
             .app-container { display: flex; max-width: 1200px; margin: 0 auto 15px auto; padding: 0 10px; gap: 20px; align-items: flex-start; }
-            
             .sidebar-servicios { width: 25%; background: white; border-radius: 8px; padding: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.12); position: sticky; top: 70px; }
-            .sidebar-servicios h3 { margin-top: 5px; color: #5f6368; border-bottom: 2px solid #f1f3f4; padding-bottom: 8px; font-size: 14px; text-transform: uppercase;}
             .servicio-item { padding: 10px; border-radius: 4px; margin-bottom: 2px; font-weight: 500; color: #5f6368; display: flex; justify-content: space-between; font-size: 14px; cursor: pointer; transition: 0.2s;}
-            .servicio-item:hover { background-color: #f1f3f4; }
             .servicio-item.active { background-color: #e8f0fe; color: #1a73e8; font-weight: bold; border-left: 4px solid #1a73e8; }
-            .servicio-item .badge { background: #dadce0; color: #5f6368; padding: 2px 8px; border-radius: 12px; font-size: 12px; }
-            .servicio-item.active .badge { background: #1a73e8; color: white; }
             
             .main-pacientes { width: 75%; }
             .empty-state { text-align: center; color: #5f6368; margin-top: 50px; font-size: 15px; width: 100%; }
@@ -40,19 +35,13 @@
             .grupo-paciente { background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.12); margin-bottom: 15px; overflow: hidden; }
             .header-paciente { background-color: #f8f9fa; padding: 10px 12px; font-weight: bold; color: #202124; border-bottom: 2px solid #1a73e8; display: flex; align-items: center; font-size: 14px;}
             .header-prn { border-bottom-color: #e53935; }
-            .header-paciente i { margin-right: 8px; color: #5f6368; font-size: 18px;}
             
             .table-responsive { width: 100%; overflow-x: auto; }
-            .med-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 400px; }
-            .med-table th { background: #f1f3f4; color: #5f6368; text-align: left; padding: 8px; font-size: 11px; font-weight: 500; }
+            .med-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 450px; }
+            .med-table th { background: #f8f9fa; color: #5f6368; text-align: left; padding: 8px; font-size: 11px; }
             .med-table td { padding: 8px; border-bottom: 1px solid #e0e0e0; vertical-align: middle; }
-            .med-table .med-name { font-weight: 500; color: #202124; }
-            .med-table .med-vol { color: #1a73e8; font-weight: bold; }
             
-            .actions-cell { text-align: right; white-space: nowrap; }
-            .btn-edit, .btn-swap { background: none; border: none; color: #5f6368; cursor: pointer; padding: 4px; border-radius: 50%; transition: 0.2s;}
-            .btn-edit:hover { color: #1a73e8; background: #e8f0fe; }
-            .btn-swap:hover { color: #e53935; background: #ffebee; }
+            .btn-edit, .btn-swap { background: none; border: none; color: #5f6368; cursor: pointer; padding: 4px; border-radius: 50%; }
 
             .fab { position: fixed; bottom: 85px; right: 20px; background-color: #1a73e8; color: white; border: none; width: 56px; height: 56px; border-radius: 50%; box-shadow: 0 4px 6px rgba(0,0,0,0.3); display: flex; justify-content: center; align-items: center; cursor: pointer; z-index: 1000; }
 
@@ -62,57 +51,58 @@
             .btn-save { background-color: #34a853; }
 
             .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center; }
-            .modal-content { background: white; width: 95%; max-width: 400px; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+            .modal-content { background: white; width: 95%; max-width: 400px; border-radius: 8px; overflow: hidden; }
             .modal-header { background: #f8f9fa; padding: 12px 15px; font-weight: bold; border-bottom: 1px solid #e0e0e0; display: flex; justify-content: space-between; align-items: center; }
-            .modal-close { background: none; border: none; font-size: 20px; cursor: pointer; }
             .modal-body { padding: 15px; max-height: 75vh; overflow-y: auto; }
             
             .form-group { margin-bottom: 12px; }
             .form-group label { display: block; font-size: 12px; font-weight: bold; color: #5f6368; margin-bottom: 4px; }
-            /* Se forzó font-size:16px para evitar Zoom en iOS */
-            .form-group input { width: 100%; padding: 10px; border: 1px solid #dadce0; border-radius: 4px; font-size: 16px; box-sizing: border-box; text-transform: uppercase; font-family: 'Roboto', sans-serif;}
-            
+            .form-group input { width: 100%; padding: 10px; border: 1px solid #dadce0; border-radius: 4px; font-size: 16px; box-sizing: border-box; text-transform: uppercase;}
             .btn-submit { width: 100%; background: #1a73e8; color: white; border: none; padding: 14px; border-radius: 4px; font-weight: bold; font-size: 15px; cursor: pointer; margin-top: 10px;}
             
-            #printArea { display: none; }
+            #printArea, #printSupplies { display: none; }
 
             @media (max-width: 768px) {
-                .app-container { flex-direction: column; gap: 10px;}
-                .sidebar-servicios, .main-pacientes { width: 100%; }
-                .sidebar-servicios { position: static; padding: 5px; margin-bottom: 0px; display: flex; overflow-x: auto; white-space: nowrap; gap: 5px;}
-                .sidebar-servicios h3 { display: none; }
-                .servicio-item { padding: 6px 12px; border-radius: 20px; border: 1px solid #e0e0e0; margin-bottom: 0; flex-shrink: 0;}
-                .servicio-item.active { border-left: 1px solid #1a73e8; background: #1a73e8; color: white;}
-                .servicio-item.active .badge { background: white; color: #1a73e8; }
-                .fab { bottom: 95px; right: 15px; } 
-                .bottom-bar { padding: 10px; padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
+                .sidebar-servicios { display: none; }
+                .main-pacientes { width: 100%; }
+                .btn-icon-top span { display: none; } /* Ocultar texto de botones en móvil */
             }
         }
 
+        /* ESTILOS DE IMPRESIÓN */
         @media print {
-            @page { margin: 5mm; size: letter portrait; }
             body * { visibility: hidden; }
+            
+            /* Área de Etiquetas */
             #printArea, #printArea * { visibility: visible; }
             #printArea { position: absolute; left: 0; top: 0; width: 100%; }
-            
             .print-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-            .print-table td { width: 25%; height: 23.5mm; padding: 1.5mm; border: 1px dashed #ccc; overflow: hidden; vertical-align: top; }
-            .etiqueta-print { font-family: 'Calibri', 'Arial', sans-serif; font-size: 6pt; line-height: 1.0; }
-            .etiqueta-print p { margin: 0 0 1.5px 0; padding: 0; }
+            .print-table td { width: 25%; height: 23.5mm; padding: 1.5mm; border: 1px dashed #ccc; vertical-align: top; overflow: hidden;}
+            .etiqueta-print { font-family: 'Calibri', sans-serif; font-size: 6pt; line-height: 1.1; }
             .bold { font-weight: bold; }
+
+            /* Área de Suministros (Calculadora) */
+            #printSupplies, #printSupplies * { visibility: visible; }
+            #printSupplies { position: absolute; left: 0; top: 0; width: 100%; padding: 10px; font-family: 'Roboto', sans-serif;}
+            #printSupplies h2 { text-align: center; font-size: 16px; margin-bottom: 5px; }
+            #printSupplies h3 { font-size: 12px; text-align: center; border-bottom: 1px solid #000; padding-bottom: 5px; margin-bottom: 15px;}
+            .supply-table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+            .supply-table th, .supply-table td { border: 1px solid #000; padding: 4px; font-size: 9px; text-align: center; }
+            .supply-table th { background: #eee; }
         }
     </style>
 </head>
 <body>
 
     <div class="app-header">
-        <div>Sistema Etiquetas</div>
+        <div>Etiquetas IV</div>
         <div class="header-actions">
             <span class="sync-status">
                 <i class="material-icons syncing-icon" id="syncIcon">sync</i>
                 <span id="dbStatus">Conectando...</span>
             </span>
-            <button id="btnEliminarSeleccionados" class="btn-icon-top btn-danger" title="Eliminar seleccionados"><i class="material-icons">delete</i> BORRAR</button>
+            <button id="btnSuministros" class="btn-icon-top btn-calc" title="Calcular suministros"><i class="material-icons">calculate</i> <span>SUMINISTROS</span></button>
+            <button id="btnEliminarSeleccionados" class="btn-icon-top btn-danger" title="Eliminar"><i class="material-icons">delete</i></button>
         </div>
     </div>
 
@@ -132,60 +122,41 @@
     <button class="fab" id="btnOpenModal"><i class="material-icons">add</i></button>
 
     <div class="bottom-bar">
-        <button class="btn-action btn-print" id="btnImprimir"><i class="material-icons">print</i> IMPRIMIR VISTA</button>
-        <button class="btn-action btn-save" id="btnGuardar"><i class="material-icons">cloud_upload</i> DRIVE VISTA</button>
+        <button class="btn-action btn-print" id="btnImprimir"><i class="material-icons">print</i> IMPRIMIR</button>
+        <button class="btn-action btn-save" id="btnGuardar"><i class="material-icons">cloud_upload</i> DRIVE</button>
     </div>
 
-    <!-- FORMULARIO 100% LIMPIO PARA MÓVILES -->
     <div class="modal-overlay" id="modalForm">
         <div class="modal-content">
             <div class="modal-header">
                 <span id="modalTitle">Nueva Etiqueta</span>
-                <button class="modal-close" id="btnCloseModal"><i class="material-icons">close</i></button>
+                <button onclick="document.getElementById('modalForm').style.display='none'" style="background:none; border:none; cursor:pointer;"><i class="material-icons">close</i></button>
             </div>
             <div class="modal-body">
-                <form id="etiquetaForm">
+                <form id="etiquetaForm" autocomplete="off">
                     <input type="hidden" id="etiquetaId"> 
-                    
-                    <div class="form-group"><label>CAMA</label>
-                        <!-- Campos limpios, sin hacks que rompan Android/iOS -->
-                        <input type="number" id="input_cama" required autocomplete="off" autocorrect="off" spellcheck="false">
-                    </div>
-                    <div class="form-group"><label>NOMBRE DEL PACIENTE</label>
-                        <input type="text" id="input_nombre" required autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false">
-                    </div>
-                    <div class="form-group"><label>MEDICAMENTO</label>
-                        <input type="text" id="input_medicamento" list="listaMedicamentos" required autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" placeholder="Escribe y presiona Enter">
+                    <div class="form-group"><label>CAMA *</label><input type="number" id="input_cama" required></div>
+                    <div class="form-group"><label>NOMBRE DEL PACIENTE *</label><input type="text" id="input_nombre" required></div>
+                    <div class="form-group"><label>MEDICAMENTO *</label>
+                        <input type="text" id="input_medicamento" list="listaMedicamentos" required placeholder="Escribe para buscar...">
                         <datalist id="listaMedicamentos"></datalist>
                     </div>
-                    <div class="form-group"><label>DOSIS (Número)</label>
-                        <input type="number" id="input_dosis" step="0.01" required autocomplete="off">
-                    </div>
-                    <div class="form-group"><label>HORARIO (Opcional)</label>
-                        <input type="text" id="input_horario" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="Ej. 14:00">
-                    </div>
-                    
-                    <div class="form-group" id="grupoVolManual" style="display: none;">
-                        <label>VOL. FINAL MANUAL (ml)</label>
-                        <input type="number" id="input_volFinalManual" step="0.01" autocomplete="off" placeholder="En blanco = automático">
-                    </div>
-
-                    <button type="submit" class="btn-submit" id="btnSubmitForm">AGREGAR ETIQUETA</button>
+                    <div class="form-group"><label>DOSIS (Número) *</label><input type="number" id="input_dosis" step="0.01" required></div>
+                    <div class="form-group"><label>HORARIO (Opcional)</label><input type="text" id="input_horario"></div>
+                    <div class="form-group" id="grupoVolManual" style="display: none;"><label>VOL. FINAL MANUAL (ml)</label><input type="number" id="input_volFinalManual" step="0.01"></div>
+                    <button type="submit" class="btn-submit" id="btnSubmitForm">AGREGAR</button>
                 </form>
             </div>
         </div>
     </div>
 
     <div id="printArea"><div id="printGrid"></div></div>
+    <div id="printSupplies"></div>
 
     <script type="module" src="app.js"></script>
     <script>
-        window.cambiarTab = function(tab) {
-            document.dispatchEvent(new CustomEvent('cambioTab', { detail: tab }));
-        };
-        window.cambiarServicio = function(servicio) {
-            document.dispatchEvent(new CustomEvent('cambioServicio', { detail: servicio }));
-        };
+        window.cambiarTab = function(tab) { document.dispatchEvent(new CustomEvent('cambioTab', { detail: tab })); };
+        window.cambiarServicio = function(servicio) { document.dispatchEvent(new CustomEvent('cambioServicio', { detail: servicio })); };
     </script>
 </body>
 </html>
