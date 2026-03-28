@@ -1,19 +1,7 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyAHHMG-hsYk1WRCn86K_Ot9WbjMX1Zf8xQ",
-  authDomain: "dosishtml.firebaseapp.com",
-  projectId: "dosishtml",
-  storageBucket: "dosishtml.firebasestorage.app",
-  messagingSenderId: "317130614255",
-  appId: "1:317130614255:web:167de03096990415a1421a"
-};
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+// URL DE TU APPS SCRIPT (Reemplaza con la nueva versión si cambió)
 const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbyGMTI1Ftbe-Tc26QQxHY8io7ySfZydiM_Z6bOcpk08o725zLAfJia22ScQBUPPHY8j_Q/exec";
 
-let etiquetasPendientes = JSON.parse(localStorage.getItem('etiquetasIV')) || [];
+let etiquetasPendientes = [];
 let dbMedicamentos = [];
 const NOMBRE_QUIMICO = "E. RICARDO L."; 
 
@@ -27,11 +15,14 @@ const inputDosis = document.getElementById('dosis');
 const inputHorario = document.getElementById('horario');
 const inputVolFinalManual = document.getElementById('volFinalManual');
 const grupoVolManual = document.getElementById('grupoVolManual');
+const syncIcon = document.getElementById('syncIcon');
+const dbStatus = document.getElementById('dbStatus');
 
 document.getElementById('btnOpenModal').addEventListener('click', () => { 
     limpiarFormulario();
     document.getElementById('modalTitle').innerText = "Nueva Etiqueta (Usa ENTER)";
     document.getElementById('btnSubmitForm').innerText = "AGREGAR ETIQUETA";
+    document.getElementById('tipoDiaria').checked = true;
     grupoVolManual.style.display = 'none'; 
     modal.style.display = 'flex'; 
     inputCama.focus(); 
@@ -43,10 +34,18 @@ inputCama.addEventListener('input', () => {
     inputNombre.value = paciente ? paciente.NOMBRE : ''; 
 });
 
-async function cargarMedicamentos() {
+// DESCARGAR BASE Y PACIENTES ACTIVOS
+async function cargarDatos() {
     try {
+        dbStatus.innerText = "Sincronizando...";
+        syncIcon.style.display = 'inline-block';
+
         const response = await fetch(URL_APPS_SCRIPT);
-        dbMedicamentos = await response.json();
+        const data = await response.json();
+        
+        dbMedicamentos = data.medicamentos || [];
+        etiquetasPendientes = data.activas || []; // Carga desde Sheets en lugar de LocalStorage
+
         const dataList = document.getElementById('listaMedicamentos');
         dataList.innerHTML = '';
         dbMedicamentos.forEach(med => {
@@ -54,14 +53,38 @@ async function cargarMedicamentos() {
             option.value = med.MEDICAMENTO; 
             dataList.appendChild(option);
         });
-        document.getElementById('dbStatus').innerText = "Base lista";
+
+        dbStatus.innerText = "Nube sincronizada";
+        syncIcon.style.display = 'none';
         renderizarInterfaz(); 
     } catch (error) {
-        document.getElementById('dbStatus').innerText = "Modo Offline";
+        dbStatus.innerText = "Modo Offline (Error de red)";
+        syncIcon.style.display = 'none';
         renderizarInterfaz();
     }
 }
-cargarMedicamentos();
+cargarDatos();
+
+// SINCRONIZACIÓN SILENCIOSA
+async function syncNube() {
+    try {
+        dbStatus.innerText = "Guardando...";
+        syncIcon.style.display = 'inline-block';
+        
+        await fetch(URL_APPS_SCRIPT, {
+            method: 'POST',
+            body: JSON.stringify({ action: "SYNC", datos: etiquetasPendientes }),
+            mode: 'no-cors', 
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+        });
+
+        dbStatus.innerText = "Nube sincronizada";
+        syncIcon.style.display = 'none';
+    } catch (e) {
+        dbStatus.innerText = "Error al guardar en nube";
+        syncIcon.style.display = 'none';
+    }
+}
 
 function calcularServicio(cama) {
     const c = Number(cama);
@@ -90,6 +113,7 @@ form.addEventListener('submit', function(e) {
     e.preventDefault();
 
     const idActual = inputId.value;
+    const tipo = document.querySelector('input[name="tipoDosis"]:checked').value;
     const cama = inputCama.value;
     const nombre = inputNombre.value.toUpperCase();
     let nombreMedInput = inputMed.value.toUpperCase().trim();
@@ -97,13 +121,10 @@ form.addEventListener('submit', function(e) {
     const horario = inputHorario.value.toUpperCase();
     const volFinalManualStr = inputVolFinalManual.value;
 
-    // LÓGICA INFALIBLE PARA ENTER:
-    // Si escribe "CEFOTA", buscará el primero que empiece con eso en la base de datos.
     let configMed = dbMedicamentos.find(m => String(m.MEDICAMENTO).toUpperCase() === nombreMedInput);
     if (!configMed) {
         configMed = dbMedicamentos.find(m => String(m.MEDICAMENTO).toUpperCase().startsWith(nombreMedInput));
         if (!configMed) configMed = dbMedicamentos.find(m => String(m.MEDICAMENTO).toUpperCase().includes(nombreMedInput));
-        
         if (configMed) {
             nombreMedInput = configMed.MEDICAMENTO; 
         } else {
@@ -115,12 +136,11 @@ form.addEventListener('submit', function(e) {
 
     const etiquetaObj = {
         id: idActual || (Date.now().toString(36) + Math.random().toString(36).substr(2)), 
-        CAMA: cama, NOMBRE: nombre, MEDICAMENTO: nombreMedInput, DOSIS: dosis, HORARIO: horario,
+        TIPO: tipo, CAMA: cama, NOMBRE: nombre, MEDICAMENTO: nombreMedInput, DOSIS: dosis, HORARIO: horario,
         SERVICIO: calcularServicio(cama), "VOL MED": calcularVolMed(dosis, configMed.PRESENTACION),
         "VOL FINAL": volFinalDefinitivo,
         SOLUCION: configMed.DILUYENTE || "", TIEMPO: configMed.TIEMPO || "",
-        UNIDADES: configMed.UNIDADES || "MG", // LEE LAS UNIDADES DESDE TU EXCEL
-        VIA: configMed.VIA || "IV",           // LEE LA VÍA DESDE TU EXCEL
+        UNIDADES: configMed.UNIDADES || "MG", VIA: configMed.VIA || "IV",
         fecha_registro: new Date().toISOString()
     };
 
@@ -147,8 +167,8 @@ form.addEventListener('submit', function(e) {
         inputMed.focus(); 
     }
 
-    localStorage.setItem('etiquetasIV', JSON.stringify(etiquetasPendientes));
-    renderizarInterfaz();
+    renderizarInterfaz(); // Actua local al instante
+    syncNube(); // Sube a Google en background
 });
 
 function limpiarFormulario() {
@@ -163,6 +183,7 @@ document.getElementById('listaPacientes').addEventListener('click', (e) => {
         const etiqueta = etiquetasPendientes.find(et => et.id === idToEdit);
         if (etiqueta) {
             inputId.value = etiqueta.id;
+            document.querySelector(`input[name="tipoDosis"][value="${etiqueta.TIPO || 'DIARIA'}"]`).checked = true;
             inputCama.value = etiqueta.CAMA;
             inputNombre.value = etiqueta.NOMBRE;
             inputMed.value = etiqueta.MEDICAMENTO;
@@ -171,7 +192,6 @@ document.getElementById('listaPacientes').addEventListener('click', (e) => {
             
             const configMed = dbMedicamentos.find(m => String(m.MEDICAMENTO).toUpperCase() === etiqueta.MEDICAMENTO);
             const calcVol = configMed ? calcularVolFinal(etiqueta.DOSIS, configMed.CONCENTRACION, configMed.DILUYENTE) : "";
-            
             inputVolFinalManual.value = (String(etiqueta["VOL FINAL"]) !== String(calcVol)) ? etiqueta["VOL FINAL"] : '';
 
             document.getElementById('modalTitle').innerText = "Editar Etiqueta";
@@ -188,8 +208,8 @@ document.getElementById('btnEliminarSeleccionados').addEventListener('click', ()
     if(confirm(`¿Eliminar ${checkboxes.length} etiquetas?`)) {
         const idsToDelete = Array.from(checkboxes).map(cb => cb.dataset.id);
         etiquetasPendientes = etiquetasPendientes.filter(e => !idsToDelete.includes(e.id));
-        localStorage.setItem('etiquetasIV', JSON.stringify(etiquetasPendientes));
         renderizarInterfaz();
+        syncNube();
     }
 });
 
@@ -204,14 +224,16 @@ function renderizarInterfaz() {
     }
 
     const conteoServicios = {};
-    const gruposPacientes = {};
+    const grupos = { "DIARIA": {}, "PRN": {} };
 
     etiquetasPendientes.forEach(etiq => {
         conteoServicios[etiq.SERVICIO] = (conteoServicios[etiq.SERVICIO] || 0) + 1;
+        const tipo = etiq.TIPO || "DIARIA";
         const llavePaciente = `Cama ${etiq.CAMA} - ${etiq.NOMBRE}`;
-        if (!gruposPacientes[etiq.SERVICIO]) gruposPacientes[etiq.SERVICIO] = {};
-        if (!gruposPacientes[etiq.SERVICIO][llavePaciente]) gruposPacientes[etiq.SERVICIO][llavePaciente] = [];
-        gruposPacientes[etiq.SERVICIO][llavePaciente].push(etiq);
+        
+        if (!grupos[tipo][etiq.SERVICIO]) grupos[tipo][etiq.SERVICIO] = {};
+        if (!grupos[tipo][etiq.SERVICIO][llavePaciente]) grupos[tipo][etiq.SERVICIO][llavePaciente] = [];
+        grupos[tipo][etiq.SERVICIO][llavePaciente].push(etiq);
     });
 
     panelServicios.innerHTML = Object.keys(conteoServicios).sort().map(srv => 
@@ -219,42 +241,49 @@ function renderizarInterfaz() {
     ).join('');
 
     let htmlPacientes = '';
-    Object.keys(gruposPacientes).sort().forEach(servicio => {
-        const pacientes = gruposPacientes[servicio];
-        Object.keys(pacientes).sort().forEach(pacienteStr => {
-            htmlPacientes += `<div class="grupo-paciente"><div class="header-paciente"><i class="material-icons">hotel</i> ${pacienteStr}</div>`;
+    ["DIARIA", "PRN"].forEach(tipo => {
+        const titleColor = tipo === "PRN" ? "section-prn" : "";
+        if (Object.keys(grupos[tipo]).length > 0) {
+            htmlPacientes += `<div class="section-title ${titleColor}">DOSIS ${tipo}</div>`;
             
-            // ESTRUCTURA TIPO TABLA APPSHEET
-            htmlPacientes += `<table class="med-table">
-                                <tr>
-                                    <th style="width: 30px;"></th>
-                                    <th>MEDICAMENTO</th>
-                                    <th>DOSIS</th>
-                                    <th>HORARIO</th>
-                                    <th>VF</th>
-                                    <th style="text-align: right;">ACCIONES</th>
-                                </tr>`;
-            
-            pacientes[pacienteStr].forEach(med => {
-                htmlPacientes += `
-                    <tr>
-                        <td><input type="checkbox" class="med-checkbox" data-id="${med.id}"></td>
-                        <td class="med-name">${med.MEDICAMENTO}</td>
-                        <td>${med.DOSIS} ${med.UNIDADES || "MG"}</td>
-                        <td>${med.HORARIO}</td>
-                        <td class="med-vol">${med['VOL FINAL']} ml</td>
-                        <td style="text-align: right;">
-                            <button class="btn-edit" data-id="${med.id}" title="Editar Etiqueta"><i class="material-icons">edit</i></button>
-                        </td>
-                    </tr>`;
+            Object.keys(grupos[tipo]).sort().forEach(servicio => {
+                const pacientes = grupos[tipo][servicio];
+                Object.keys(pacientes).sort().forEach(pacienteStr => {
+                    const headerClass = tipo === "PRN" ? "header-prn" : "";
+                    htmlPacientes += `<div class="grupo-paciente"><div class="header-paciente ${headerClass}"><i class="material-icons">hotel</i> ${pacienteStr} (${servicio})</div>`;
+                    
+                    htmlPacientes += `<table class="med-table">
+                                        <tr>
+                                            <th style="width: 30px;"></th>
+                                            <th>MEDICAMENTO</th>
+                                            <th>DOSIS</th>
+                                            <th>HORARIO</th>
+                                            <th>VF</th>
+                                            <th style="text-align: right;"></th>
+                                        </tr>`;
+                    
+                    pacientes[pacienteStr].forEach(med => {
+                        htmlPacientes += `
+                            <tr>
+                                <td><input type="checkbox" class="med-checkbox" data-id="${med.id}"></td>
+                                <td class="med-name">${med.MEDICAMENTO}</td>
+                                <td>${med.DOSIS} <span style="font-size:11px; color:#5f6368;">${med.UNIDADES || "MG"}</span></td>
+                                <td>${med.HORARIO}</td>
+                                <td class="med-vol">${med['VOL FINAL']} ml</td>
+                                <td style="text-align: right;">
+                                    <button class="btn-edit" data-id="${med.id}"><i class="material-icons">edit</i></button>
+                                </td>
+                            </tr>`;
+                    });
+                    htmlPacientes += `</table></div>`;
+                });
             });
-            htmlPacientes += `</table></div>`;
-        });
+        }
     });
     panelPacientes.innerHTML = htmlPacientes;
 }
 
-// IMPRIMIR NATIVO (TABLA CLÁSICA GOOGLE DOCS)
+// IMPRIMIR NATIVO
 document.getElementById('btnImprimir').addEventListener('click', () => {
     if (etiquetasPendientes.length === 0) return alert("No hay etiquetas.");
     const printGrid = document.getElementById('printGrid');
@@ -268,8 +297,8 @@ document.getElementById('btnImprimir').addEventListener('click', () => {
         for (let j = 0; j < 4; j++) {
             if (i + j < etiquetasPendientes.length) {
                 let etiq = etiquetasPendientes[i + j];
-                let medLimpio = etiq.MEDICAMENTO.split(/\s\d/)[0].trim();
-                let textoVolumen = (etiq["VOL MED"] && etiq["VOL MED"] !== "0") ? ` - ${etiq["VOL MED"]}${etiq.SOLUCION ? " ML" : ""}` : "";
+                let tituloMed = etiq.TIPO === "PRN" ? `<span class="prn-mark">PRN</span> ${etiq.MEDICAMENTO}` : etiq.MEDICAMENTO;
+                let textoVolumen = (etiq["VOL MED"] && etiq["VOL MED"] !== "0" && etiq["VOL MED"] !== 0) ? ` - ${etiq["VOL MED"]}${etiq.SOLUCION ? " ML" : ""}` : "";
                 
                 tableHTML += `
                 <td>
@@ -277,9 +306,9 @@ document.getElementById('btnImprimir').addEventListener('click', () => {
                         <p class="bold">NOMBRE: ${etiq.NOMBRE}</p>
                         <p class="bold">SERVICIO: ${etiq.SERVICIO} &nbsp;&nbsp; CAMA: ${etiq.CAMA}</p>
                         <p>FECHA: ${fechaStr} &nbsp;&nbsp; ${NOMBRE_QUIMICO}</p>
-                        <p class="bold">${etiq.MEDICAMENTO} ${etiq.DOSIS} ${etiq.UNIDADES || "MG"}${textoVolumen} ${etiq.VIA || "IV"} ${etiq.TIEMPO ? "P/"+etiq.TIEMPO : ""}</p>
+                        <p class="bold">${tituloMed} ${etiq.DOSIS} ${etiq.UNIDADES || "MG"}${textoVolumen} ${etiq.VIA || "IV"} ${etiq.TIEMPO ? " P/"+etiq.TIEMPO : ""}</p>
                         <p>${etiq.SOLUCION}</p>
-                        <p class="bold">VOL. FINAL: ${etiq['VOL FINAL']} ML &nbsp;&nbsp; HORARIO: ${etiq.HORARIO}</p>
+                        <p class="bold">VOL. FINAL: ${etiq['VOL FINAL']} ML &nbsp;&nbsp; HR: ${etiq.HORARIO}</p>
                     </div>
                 </td>`;
             } else {
@@ -294,35 +323,34 @@ document.getElementById('btnImprimir').addEventListener('click', () => {
     window.print();
 });
 
+// GENERAR DOCUMENTO DRIVE
 document.getElementById('btnGuardar').addEventListener('click', async () => {
     if (etiquetasPendientes.length === 0) return alert("Agrega etiquetas primero.");
     const btn = document.getElementById('btnGuardar');
-    btn.innerHTML = '<i class="material-icons">sync</i> GUARDANDO...';
+    btn.innerHTML = '<i class="material-icons">sync</i> GENERANDO...';
     btn.disabled = true;
 
     try {
-        for (const etiq of etiquetasPendientes) await addDoc(collection(db, "etiquetas_historial"), etiq);
-
         await fetch(URL_APPS_SCRIPT, {
             method: 'POST',
-            body: JSON.stringify(etiquetasPendientes),
+            body: JSON.stringify({ action: "DOC", datos: etiquetasPendientes }),
             mode: 'no-cors', 
             headers: { 'Content-Type': 'text/plain;charset=utf-8' }
         });
-
-        alert("Etiquetas guardadas en Drive y Firebase.");
+        alert("Documento generado en Drive.");
     } catch (e) {
-        alert("Error al guardar.");
+        alert("Error al generar en Drive.");
     } finally {
-        btn.innerHTML = '<i class="material-icons">cloud_upload</i> GUARDAR EN DRIVE';
+        btn.innerHTML = '<i class="material-icons">cloud_upload</i> GENERAR EN DRIVE';
         btn.disabled = false;
     }
 });
 
+// VACIAR TODO
 document.getElementById('btnLimpiarTodo').addEventListener('click', () => {
-    if (confirm("¿Borrar toda la lista actual?")) {
+    if (confirm("¿Borrar toda la base actual?")) {
         etiquetasPendientes = [];
-        localStorage.removeItem('etiquetasIV');
         renderizarInterfaz();
+        syncNube();
     }
 });
