@@ -2,7 +2,8 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>CENTRAL IV - SISTEMA UNIVERSAL</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CENTRAL IV - MOBILE READY</title>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
@@ -10,99 +11,114 @@
     <style>
         :root { --blue: #1a73e8; --red: #d32f2f; --green: #34a853; --gray: #5f6368; --border: #dadce0; }
         
-        @media screen {
-            body { font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; background: #f1f3f4; display: flex; height: 100vh; overflow: hidden; }
-            
-            .sidebar { width: 340px; background: white; border-right: 1px solid var(--border); padding: 15px; display: flex; flex-direction: column; box-shadow: 2px 0 5px rgba(0,0,0,0.05); flex-shrink: 0; }
-            .sidebar h2 { color: var(--blue); font-size: 18px; margin: 0 0 15px 0; border-bottom: 2px solid var(--blue); padding-bottom: 5px; }
-            
-            .form-group { margin-bottom: 12px; position: relative; }
-            .form-group label { display: block; font-size: 10px; font-weight: bold; color: var(--gray); margin-bottom: 3px; }
-            .form-group input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 14px; outline: none; }
-            .form-group input:focus { border-color: var(--blue); box-shadow: 0 0 0 2px rgba(26,115,232,0.1); }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; background: #f1f3f4; display: flex; height: 100vh; flex-direction: column; overflow: hidden; }
 
-            #suggestions { position: absolute; width: 100%; background: white; border: 1px solid var(--border); border-radius: 0 0 4px 4px; z-index: 1000; max-height: 180px; overflow-y: auto; display: none; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-            .sug-item { padding: 10px; cursor: pointer; font-size: 12px; border-bottom: 1px solid #f1f1f1; }
-            .sug-item:hover { background: #e8f0fe; }
+        /* HEADER Y TABS */
+        .header { background: var(--blue); color: white; padding: 10px 15px; display: flex; align-items: center; justify-content: space-between; z-index: 1001; }
+        .tabs { background: white; display: flex; border-bottom: 1px solid var(--border); height: 50px; flex-shrink: 0; }
+        .tab { flex: 1; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 11px; color: var(--gray); cursor: pointer; text-transform: uppercase; }
+        .tab.active { color: var(--blue); border-bottom: 3px solid var(--blue); }
+        .tab.active-prn { color: var(--red); border-bottom: 3px solid var(--red); }
+        .tab.active-lotes { color: var(--green); border-bottom: 3px solid var(--green); }
 
-            .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-            .tabs { background: white; display: flex; border-bottom: 1px solid var(--border); height: 50px; flex-shrink: 0; }
-            .tab { flex: 1; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px; color: var(--gray); cursor: pointer; }
-            .tab.active { color: var(--blue); border-bottom: 3px solid var(--blue); background: #f8f9fa; }
-            .tab.active-prn { color: var(--red); border-bottom: 3px solid var(--red); }
-            .tab.active-lotes { color: var(--green); border-bottom: 3px solid var(--green); }
+        /* CONTENIDO PRINCIPAL */
+        .content-area { flex: 1; display: flex; overflow: hidden; position: relative; }
 
-            .content-area { flex: 1; display: flex; overflow: hidden; }
-            .srv-nav { width: 160px; background: white; border-right: 1px solid var(--border); overflow-y: auto; padding: 10px; }
-            .srv-item { padding: 10px; font-size: 11px; border-radius: 6px; cursor: pointer; margin-bottom: 3px; display: flex; justify-content: space-between; }
-            .srv-item.active { background: #e8f0fe; color: var(--blue); font-weight: bold; }
+        /* NAVEGACIÓN DE SERVICIOS (Responsive) */
+        .srv-nav { width: 180px; background: white; border-right: 1px solid var(--border); overflow-y: auto; padding: 10px; flex-shrink: 0; }
+        .srv-item { padding: 10px; font-size: 11px; border-radius: 6px; cursor: pointer; margin-bottom: 4px; display: flex; justify-content: space-between; border: 1px solid transparent; }
+        .srv-item.active { background: #e8f0fe; color: var(--blue); font-weight: bold; border-color: var(--blue); }
 
-            .list-view { flex: 1; padding: 15px; overflow-y: auto; }
-            .card { background: white; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); margin-bottom: 10px; border-left: 5px solid var(--blue); }
-            .card.prn { border-left-color: var(--red); }
-            .card-h { padding: 8px 12px; font-weight: bold; font-size: 13px; display: flex; justify-content: space-between; border-bottom: 1px solid #eee; }
-            
-            .btn-float { position: fixed; bottom: 20px; right: 20px; background: #ff9800; color: white; border: none; padding: 15px 30px; border-radius: 50px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); display: flex; align-items: center; gap: 8px; }
+        /* LISTA DE PACIENTES */
+        .list-view { flex: 1; padding: 15px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+        .card { background: white; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 12px; border-left: 6px solid var(--blue); }
+        .card.prn { border-left-color: var(--red); }
+        .card-h { padding: 10px 15px; font-weight: bold; font-size: 13px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; }
 
-            .lote-table { width: 100%; border-collapse: collapse; background: white; font-size: 12px; }
-            .lote-table th { background: #f8f9fa; padding: 10px; text-align: left; border-bottom: 2px solid var(--green); }
-            .lote-table td { padding: 8px; border-bottom: 1px solid #eee; }
-            .lote-input { width: 100%; border: 1px solid transparent; padding: 4px; border-radius: 4px; }
-            .lote-input:focus { border-color: var(--green); background: #f1f8e9; }
+        /* SIDEBAR / MODAL DE REGISTRO (Móvil y PC) */
+        .sidebar { width: 350px; background: white; border-right: 1px solid var(--border); padding: 20px; display: flex; flex-direction: column; box-shadow: 2px 0 5px rgba(0,0,0,0.05); z-index: 1000; }
+        
+        /* BOTONES FLOTANTES */
+        .fab { position: fixed; bottom: 20px; right: 20px; width: 60px; height: 60px; border-radius: 50%; background: var(--blue); color: white; display: none; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.3); border: none; cursor: pointer; z-index: 1002; }
+        .btn-print { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #ff9800; color: white; border: none; padding: 12px 25px; border-radius: 30px; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.2); display: flex; align-items: center; gap: 8px; z-index: 999; }
 
-            #print-zone { display: none; }
+        /* AJUSTES MÓVILES (@media) */
+        @media (max-width: 768px) {
+            .sidebar { position: fixed; left: 0; top: 0; width: 100%; height: 100%; transform: translateY(100%); transition: transform 0.3s ease; }
+            .sidebar.open { transform: translateY(0); }
+            .srv-nav { position: absolute; top: 0; width: 100%; height: 45px; display: flex; flex-direction: row; border-right: none; border-bottom: 1px solid var(--border); padding: 5px; gap: 5px; }
+            .srv-item { white-space: nowrap; margin-bottom: 0; padding: 5px 12px; }
+            .list-view { margin-top: 45px; }
+            .fab { display: flex; }
+            .btn-print { bottom: 90px; padding: 10px 20px; font-size: 12px; }
         }
 
-        @media print {
-            @page { margin: 5mm 5mm 5mm 15mm; size: letter; }
-            body { background: white; }
-            .sidebar, .tabs, .srv-nav, .btn-float, .no-print { display: none !important; }
-            #print-zone { display: block !important; width: 100%; }
-            .label-grid { width: 100%; border-collapse: collapse; table-layout: fixed; }
-            .label-cell { 
-                width: 25%; height: 23.5mm; border: 0.1pt dashed #ccc; padding: 1.2mm; box-sizing: border-box; 
-                vertical-align: top; border-bottom: 3mm solid white; 
-            }
-            .label-cell p { margin: 0; padding: 0; font-family: 'Calibri', sans-serif; font-size: 6pt; line-height: 1.0; white-space: nowrap; }
-            .p-name { font-size: 5.5pt !important; font-weight: bold; }
-            .bold { font-weight: bold !important; }
-        }
+        /* FORMULARIO */
+        .form-group { margin-bottom: 15px; position: relative; }
+        .form-group label { display: block; font-size: 10px; font-weight: bold; color: var(--gray); margin-bottom: 4px; }
+        .form-group input { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; outline: none; -webkit-appearance: none; }
+        #suggestions { position: absolute; width: 100%; background: white; border: 1px solid var(--border); border-radius: 0 0 8px 8px; z-index: 1000; max-height: 150px; overflow-y: auto; box-shadow: 0 4px 8px rgba(0,0,0,0.1); display: none; }
+        .sug-item { padding: 12px; font-size: 14px; border-bottom: 1px solid #f1f1f1; }
+
+        #print-zone { display: none; }
+
+        /* ESTILO LOTES */
+        .lote-card { background: white; margin-bottom: 10px; padding: 15px; border-radius: 8px; border-left: 5px solid var(--green); }
+        .lote-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+        .lote-grid input { padding: 8px; font-size: 12px; border: 1px solid #eee; border-radius: 4px; }
     </style>
 </head>
 <body>
 
-    <div class="sidebar no-print">
-        <h2>Registro Central IV</h2>
-        <div class="form-group"><label>CAMA</label><input type="text" id="f-cama" data-next="f-nom"></div>
-        <div class="form-group"><label>PACIENTE</label><input type="text" id="f-nom" style="text-transform:uppercase" data-next="f-med"></div>
-        <div class="form-group"><label>MEDICAMENTO</label><input type="text" id="f-med" autocomplete="off"><div id="suggestions"></div></div>
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px">
-            <div class="form-group"><label>DOSIS</label><input type="number" step="0.01" id="f-dos" data-next="f-hor"></div>
-            <div class="form-group"><label>HORARIO</label><input type="text" id="f-hor" placeholder="08:00"></div>
-        </div>
-        <button id="btn-save" style="background:var(--blue); color:white; border:none; padding:12px; border-radius:4px; font-weight:bold; cursor:pointer;" onclick="guardarFirebase()">GUARDAR (ENTER)</button>
-        
-        <div style="margin-top:auto; font-size:10px; color:#999; text-align:center;">
-            Cloud Sync Enabled | Redondeo 0.1 Activo
-        </div>
+    <div class="header">
+        <span style="font-weight:bold;">CENTRAL IV</span>
+        <i class="material-icons" onclick="location.reload()" style="font-size:20px">sync</i>
     </div>
 
-    <div class="main no-print">
-        <div class="tabs">
-            <div id="tab-DIARIA" class="tab active" onclick="setTab('DIARIA')">DIARIA</div>
-            <div id="tab-PRN" class="tab" onclick="setTab('PRN')">PRN</div>
-            <div id="tab-LOTES" class="tab" onclick="setTab('LOTES')">GESTIÓN DE LOTES</div>
-        </div>
-        <div class="content-wrapper">
-            <div class="srv-nav" id="srv-list"></div>
-            <div class="list-view" id="main-view"></div>
-        </div>
-        <button class="btn-float" onclick="imprimirEtiquetas()"><i class="material-icons">print</i> IMPRIMIR</button>
+    <div class="tabs">
+        <div id="tab-DIARIA" class="tab active" onclick="setTab('DIARIA')">Diarias</div>
+        <div id="tab-PRN" class="tab" onclick="setTab('PRN')">PRN</div>
+        <div id="tab-LOTES" class="tab" onclick="setTab('LOTES')">Lotes</div>
     </div>
+
+    <div class="content-area">
+        <!-- FORMULARIO (Se comporta como sidebar en PC y Modal en móvil) -->
+        <div class="sidebar" id="form-sidebar">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px">
+                <h2 style="margin:0; font-size:18px; color:var(--blue)">Nuevo Registro</h2>
+                <i class="material-icons" class="no-pc" onclick="toggleForm()" style="color:var(--gray); cursor:pointer">close</i>
+            </div>
+            
+            <div class="form-group"><label>CAMA</label><input type="text" id="f-cama" inputmode="numeric" placeholder="Cama..." data-next="f-nom"></div>
+            <div class="form-group"><label>PACIENTE</label><input type="text" id="f-nom" style="text-transform:uppercase" placeholder="Nombre completo..." data-next="f-med"></div>
+            <div class="form-group"><label>MEDICAMENTO</label><input type="text" id="f-med" placeholder="Buscar medicamento..." autocomplete="off"><div id="suggestions"></div></div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px">
+                <div class="form-group"><label>DOSIS</label><input type="number" step="0.1" id="f-dos" inputmode="decimal" placeholder="Cant."></div>
+                <div class="form-group"><label>HORA</label><input type="text" id="f-hor" placeholder="08:00"></div>
+            </div>
+
+            <button onclick="guardarFirebase()" style="background:var(--blue); color:white; border:none; padding:15px; border-radius:10px; font-weight:bold; font-size:16px; cursor:pointer">
+                GUARDAR REGISTRO
+            </button>
+        </div>
+
+        <!-- NAV DE SERVICIOS -->
+        <div class="srv-nav" id="srv-list"></div>
+
+        <!-- LISTA DE PACIENTES -->
+        <div class="list-view" id="main-view"></div>
+    </div>
+
+    <button class="fab" onclick="toggleForm()"><i class="material-icons">add</i></button>
+    
+    <button class="btn-print" onclick="imprimirEtiquetas()">
+        <i class="material-icons">print</i> IMPRIMIR ETIQUETAS
+    </button>
 
     <div id="print-zone"></div>
 
     <script>
+        // CONFIG FIREBASE
         const firebaseConfig = {
             apiKey: "AIzaSyAHHMG-hsYk1WRCn86K_Ot9WbjMX1Zf8xQ",
             authDomain: "dosishtml.firebaseapp.com",
@@ -114,41 +130,42 @@
 
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
-        db.enablePersistence().catch(err => console.log("Persistence offline"));
+        db.enablePersistence().catch(err => console.log("Offline mode activado"));
 
         let CAT_DATA = [];
         let DOSIS_DATA = [];
         let currentTab = "DIARIA";
         let currentSrv = "TODOS";
 
-        // Escuchar Catálogo
+        // ESCUCHA FIREBASE
         db.collection("catalogo").onSnapshot(snap => {
-            CAT_DATA = [];
-            snap.forEach(doc => CAT_DATA.push({id: doc.id, ...doc.data()}));
+            CAT_DATA = []; snap.forEach(doc => CAT_DATA.push({id: doc.id, ...doc.data()}));
             CAT_DATA.sort((a,b) => a.nombre.localeCompare(b.nombre));
             render();
         });
 
-        // Escuchar Dosis
         db.collection("dosis").orderBy("ts", "desc").onSnapshot(snap => {
-            DOSIS_DATA = [];
-            snap.forEach(doc => DOSIS_DATA.push({id: doc.id, ...doc.data()}));
+            DOSIS_DATA = []; snap.forEach(doc => DOSIS_DATA.push({id: doc.id, ...doc.data()}));
             render();
         });
 
-        // Enters
-        const ids = ["f-cama", "f-nom", "f-dos", "f-hor"];
-        ids.forEach(id => {
+        // NAVEGACION POR ENTERS
+        const inputs = ["f-cama", "f-nom", "f-med", "f-dos", "f-hor"];
+        inputs.forEach(id => {
             document.getElementById(id).addEventListener('keydown', e => {
                 if(e.key === 'Enter') {
                     e.preventDefault();
-                    if(id === "f-hor") guardarFirebase();
-                    else document.getElementById(document.getElementById(id).dataset.next).focus();
+                    if(id === "f-hor") { guardarFirebase(); if(window.innerWidth < 768) toggleForm(); }
+                    else {
+                        const nextId = document.getElementById(id).dataset.next;
+                        if(nextId) document.getElementById(nextId).focus();
+                        else if(id === "f-med") document.getElementById('f-dos').focus();
+                    }
                 }
             });
         });
 
-        // Autocomplete
+        // AUTOCOMPLETE
         const medInput = document.getElementById('f-med');
         const sugDiv = document.getElementById('suggestions');
         medInput.addEventListener('input', () => {
@@ -167,18 +184,17 @@
             }
         });
 
-        medInput.addEventListener('keydown', e => { if(e.key === 'Enter') { e.preventDefault(); sugDiv.style.display="none"; document.getElementById('f-dos').focus(); } });
+        function toggleForm() { document.getElementById('form-sidebar').classList.toggle('open'); }
 
-        // Negocio
         function getSrv(c) {
             const n = parseInt(c);
-            if(n >= 220 && n <= 245) return "ONCOLOGIA";
-            if(n >= 501 && n <= 521) return "INFECTOLOGIA";
+            if(n >= 220 && n <= 245) return "ONCO";
+            if(n >= 501 && n <= 521) return "INFECTO";
             if(n >= 522 && n <= 535) return "CIRUGIA";
             if(n >= 536 && n <= 542) return "GASTRO";
-            if(n >= 543 && n <= 549) return "TRAUMATOLOGIA";
+            if(n >= 543 && n <= 549) return "TRAUMA";
             if(n >= 550 && n <= 559) return "MED INT";
-            return "URGENCIAS";
+            return "URG";
         }
 
         function guardarFirebase() {
@@ -190,22 +206,20 @@
 
             if(!cama || !nom || !config || isNaN(dos)) return alert("Revisa campos");
 
-            // --- NUEVA LÓGICA DE REDONDEO VOL MED ---
-            const volM_raw = dos / parseFloat(config.pre);
-            const volM = Math.round(volM_raw * 10) / 10; // Redondeo a 0.1
-
-            let volF = (dos / parseFloat(config.con));
-            if(config.dil) volF = volF <= 1 ? 1 : (volF <= 3 ? 3 : Math.ceil(volF/5)*5);
-            else volF = Math.round(volF * 10) / 10;
+            // REDONDEO 0.1 Y LIMPIEZA .0
+            const vM = Math.round((dos / parseFloat(config.pre)) * 10) / 10;
+            let vF = (dos / parseFloat(config.con));
+            if(config.dil) vF = vF <= 1 ? 1 : (vF <= 3 ? 3 : Math.ceil(vF/5)*5);
+            else vF = Math.round(vF * 10) / 10;
 
             db.collection("dosis").add({
                 tipo: currentTab, cama, nombre: nom, medicamento: medNom, dosis: dos,
                 horario: document.getElementById('f-hor').value, servicio: getSrv(cama),
-                volM, volF, uni: config.uni, via: config.via, dil: config.dil, tie: config.tie,
+                volM: vM, volF: vF, uni: config.uni, via: config.via, dil: config.dil, tie: config.tie,
                 ts: firebase.firestore.FieldValue.serverTimestamp()
             });
 
-            ["f-cama", "f-nom", "f-med", "f-dos", "f-hor"].forEach(i => document.getElementById(i).value = "");
+            inputs.forEach(i => document.getElementById(i).value = "");
             document.getElementById('f-cama').focus();
         }
 
@@ -213,40 +227,35 @@
             const view = document.getElementById('main-view');
             const nav = document.getElementById('srv-list');
             if(currentTab === "LOTES") { nav.innerHTML = ""; renderLotes(view); return; }
+
             const filtrados = DOSIS_DATA.filter(d => d.tipo === currentTab);
             const srvs = [...new Set(filtrados.map(d => d.servicio))].sort();
-            nav.innerHTML = `<div class="srv-item ${currentSrv==='TODOS'?'active':''}" onclick="currentSrv='TODOS';render()"><span>TODOS</span> <b>${filtrados.length}</b></div>` +
-                srvs.map(s => `<div class="srv-item ${currentSrv===s?'active':''}" onclick="currentSrv='${s}';render()"><span>${s}</span> <b>${filtrados.filter(x=>x.servicio===s).length}</b></div>`).join('');
+            nav.innerHTML = `<div class="srv-item ${currentSrv==='TODOS'?'active':''}" onclick="setSrv('TODOS')">TODOS (${filtrados.length})</div>` +
+                srvs.map(s => `<div class="srv-item ${currentSrv===s?'active':''}" onclick="setSrv('${s}')">${s}</div>`).join('');
+
             const final = currentSrv === 'TODOS' ? filtrados : filtrados.filter(d => d.servicio === currentSrv);
             const gps = {};
             final.forEach(d => { const k = `CAMA ${d.cama} - ${d.nombre}`; if(!gps[k]) gps[k]=[]; gps[k].push(d); });
+
             view.innerHTML = Object.keys(gps).sort().map(k => `
                 <div class="card ${currentTab==='PRN'?'prn':''}">
-                    <div class="card-h">${k} <i class="material-icons" style="font-size:16px; color:#ccc; cursor:pointer" onclick="eliminar('${gps[k][0].id}')">delete</i></div>
-                    <table style="width:100%; padding:10px; font-size:13px;">
-                        ${gps[k].map(m => `<tr><td><b>${m.medicamento}</b></td><td>${m.dosis}${m.uni}</td><td>${m.horario || '--'}</td></tr>`).join('')}
-                    </table>
+                    <div class="card-h">${k} <i class="material-icons" style="font-size:18px; color:var(--red); cursor:pointer" onclick="eliminar('${gps[k][0].id}')">delete</i></div>
+                    <div style="padding:10px; font-size:13px;">
+                        ${gps[k].map(m => `<div style="margin-bottom:5px"><b>${m.medicamento}</b>: ${m.dosis}${m.uni} @ ${m.horario || '--'}</div>`).join('')}
+                    </div>
                 </div>`).join('');
         }
 
         function renderLotes(cont) {
-            cont.innerHTML = `
-                <div class="card" style="padding:15px; border-left-color: var(--green);">
-                    <div class="card-h" style="background:transparent; border:none; margin-bottom:10px">GESTIÓN DE LOTES</div>
-                    <table class="lote-table">
-                        <thead><tr><th>MEDICAMENTO</th><th>LOTE</th><th>CADUCIDAD</th><th>LABORATORIO</th></tr></thead>
-                        <tbody>
-                            ${CAT_DATA.map(m => `
-                                <tr>
-                                    <td><b>${m.nombre}</b></td>
-                                    <td><input class="lote-input" value="${m.lot || ''}" onchange="updateLoteField('${m.id}', 'lot', this.value)"></td>
-                                    <td><input class="lote-input" value="${m.cad || ''}" onchange="updateLoteField('${m.id}', 'cad', this.value)"></td>
-                                    <td><input class="lote-input" value="${m.lab || ''}" onchange="updateLoteField('${m.id}', 'lab', this.value)"></td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                </div>`;
+            cont.innerHTML = CAT_DATA.map(m => `
+                <div class="lote-card">
+                    <div style="font-weight:bold; color:var(--blue)">${m.nombre}</div>
+                    <div class="lote-grid">
+                        <input placeholder="Lote" value="${m.lot||''}" onchange="updLote('${m.id}','lot',this.value)">
+                        <input placeholder="Caducidad" value="${m.cad||''}" onchange="updLote('${m.id}','cad',this.value)">
+                        <input placeholder="Lab" value="${m.lab||''}" style="grid-column: span 2" onchange="updLote('${m.id}','lab',this.value)">
+                    </div>
+                </div>`).join('');
         }
 
         function imprimirEtiquetas() {
@@ -263,18 +272,15 @@
                     const d = data[i+j];
                     if(d) {
                         const medLimpio = d.medicamento.split(/\s\d/)[0].trim();
-                        
-                        // --- LÓGICA DE LIMPIEZA DE DECIMALES .0 ---
-                        const volM_clean = Number(d.volM); // Elimina el .0 si es entero
-                        const vmStr = (volM_clean > 0) ? ` - ${volM_clean}${d.dil ? " ML" : ""}` : "";
-                        
+                        const vM = Number(d.volM), vF = Number(d.volF);
+                        const vmStr = (vM > 0) ? ` - ${vM}${d.dil ? " ML" : ""}` : "";
                         h += `<td class="label-cell">
                             <p class="p-name">NOMBRE: ${d.nombre}</p>
                             <p class="bold">SERVICIO: ${d.servicio} &nbsp; CAMA: ${d.cama}</p>
                             <p>FECHA: ${fStr} &nbsp; E. RICARDO L.</p>
                             <p class="bold">${medLimpio} ${d.dosis} ${d.uni}${vmStr} ${d.via}${d.tie ? ' P/'+d.tie : ''}</p>
                             <p>${d.dil || ""}</p>
-                            <p class="bold">VOL. FINAL: ${Number(d.volF)} ML &nbsp; HORARIO: ${d.horario}</p>
+                            <p class="bold">VOL. FINAL: ${vF} ML &nbsp; HORARIO: ${d.horario}</p>
                         </td>`;
                     } else h += '<td></td>';
                 }
@@ -290,8 +296,9 @@
             const cls = t === 'PRN' ? 'active-prn' : (t === 'LOTES' ? 'active-lotes' : 'active');
             document.getElementById(`tab-${t}`).classList.add(cls);
         }
-        function updateLoteField(id, field, val) { db.collection("catalogo").doc(id).update({ [field]: val }); }
-        function eliminar(id) { if(confirm("¿Eliminar?")) db.collection("dosis").doc(id).delete(); }
+        function updLote(id, f, v) { db.collection("catalogo").doc(id).update({ [f]: v }); }
+        function eliminar(id) { if(confirm("¿Borrar?")) db.collection("dosis").doc(id).delete(); }
+        function setSrv(s) { currentSrv = s; render(); }
     </script>
 </body>
 </html>
