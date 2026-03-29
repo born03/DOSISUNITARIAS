@@ -13,7 +13,6 @@
         @media screen {
             body { font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; background: #f1f3f4; display: flex; height: 100vh; overflow: hidden; }
             
-            /* Panel Izquierdo: Entrada */
             .sidebar { width: 340px; background: white; border-right: 1px solid var(--border); padding: 15px; display: flex; flex-direction: column; box-shadow: 2px 0 5px rgba(0,0,0,0.05); flex-shrink: 0; }
             .sidebar h2 { color: var(--blue); font-size: 18px; margin: 0 0 15px 0; border-bottom: 2px solid var(--blue); padding-bottom: 5px; }
             
@@ -26,7 +25,6 @@
             .sug-item { padding: 10px; cursor: pointer; font-size: 12px; border-bottom: 1px solid #f1f1f1; }
             .sug-item:hover { background: #e8f0fe; }
 
-            /* Panel Derecho: Tabs y Lista */
             .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
             .tabs { background: white; display: flex; border-bottom: 1px solid var(--border); height: 50px; flex-shrink: 0; }
             .tab { flex: 1; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px; color: var(--gray); cursor: pointer; }
@@ -46,7 +44,6 @@
             
             .btn-float { position: fixed; bottom: 20px; right: 20px; background: #ff9800; color: white; border: none; padding: 15px 30px; border-radius: 50px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); display: flex; align-items: center; gap: 8px; }
 
-            /* Tabla Lotes */
             .lote-table { width: 100%; border-collapse: collapse; background: white; font-size: 12px; }
             .lote-table th { background: #f8f9fa; padding: 10px; text-align: left; border-bottom: 2px solid var(--green); }
             .lote-table td { padding: 8px; border-bottom: 1px solid #eee; }
@@ -56,7 +53,6 @@
             #print-zone { display: none; }
         }
 
-        /* DISEÑO DE IMPRESIÓN (CALIBRI 6PT) */
         @media print {
             @page { margin: 5mm 5mm 5mm 15mm; size: letter; }
             body { background: white; }
@@ -65,7 +61,7 @@
             .label-grid { width: 100%; border-collapse: collapse; table-layout: fixed; }
             .label-cell { 
                 width: 25%; height: 23.5mm; border: 0.1pt dashed #ccc; padding: 1.2mm; box-sizing: border-box; 
-                vertical-align: top; border-bottom: 3mm solid white; /* ESPACIO 3MM */
+                vertical-align: top; border-bottom: 3mm solid white; 
             }
             .label-cell p { margin: 0; padding: 0; font-family: 'Calibri', sans-serif; font-size: 6pt; line-height: 1.0; white-space: nowrap; }
             .p-name { font-size: 5.5pt !important; font-weight: bold; }
@@ -87,7 +83,7 @@
         <button id="btn-save" style="background:var(--blue); color:white; border:none; padding:12px; border-radius:4px; font-weight:bold; cursor:pointer;" onclick="guardarFirebase()">GUARDAR (ENTER)</button>
         
         <div style="margin-top:auto; font-size:10px; color:#999; text-align:center;">
-            Cloud Sync Enabled | Persistence On
+            Cloud Sync Enabled | Redondeo 0.1 Activo
         </div>
     </div>
 
@@ -107,7 +103,6 @@
     <div id="print-zone"></div>
 
     <script>
-        // --- CONFIGURACIÓN ---
         const firebaseConfig = {
             apiKey: "AIzaSyAHHMG-hsYk1WRCn86K_Ot9WbjMX1Zf8xQ",
             authDomain: "dosishtml.firebaseapp.com",
@@ -121,43 +116,29 @@
         const db = firebase.firestore();
         db.enablePersistence().catch(err => console.log("Persistence offline"));
 
-        // BASE DE DATOS LOCAL (PARA LA CARGA INICIAL POR PRIMERA VEZ)
-        const INITIAL_MEDS = [
-            {nombre: "AC. FOLINICO 50 MG", pre: 12.5, con: 0.5, dil: "AFORAR CON SOLUCIÓN FISIOLÓGICA 0.9%", tie: "30 MIN", uni: "MG", via: "IV", den: "INNEFOL", lot: "C25M102", cad: "mar-27", lab: "PISA"},
-            {nombre: "ACICLOVIR 250 MG", pre: 25, con: 2, dil: "AFORAR CON SOLUCIÓN FISIOLÓGICA 0.9%", tie: "90 MIN", uni: "MG", via: "IV", den: "GI", lot: "T25U358", cad: "jul-27", lab: "PISA"},
-            {nombre: "ALBUMINA 12.5 G", pre: 1, con: 0.25, dil: "", tie: "4 HRS", uni: "G", via: "IV", den: "OCTALBIN", lot: "PP04A6871", cad: "dic-26", lab: "OCTAPHARMA"},
-            {nombre: "AMIKACINA 500 MG", pre: 250, con: 10, dil: "AFORAR CON SOLUCIÓN FISIOLÓGICA 0.9%", tie: "30 MIN", uni: "MG", via: "IV", den: "GI", lot: "25F512", cad: "feb-27", lab: "PISA"},
-            {nombre: "BENCILPENICILINA 1M", pre: 200000, con: 50000, dil: "AFORAR CON SOLUCIÓN FISIOLÓGICA 0.9%", tie: "30 MIN", uni: "UI", via: "IV", den: "GI", lot: "I24F032", cad: "30/09/2026", lab: "AMSA"},
-            {nombre: "VANCOMICINA 500 MG", pre: 50, con: 2.5, dil: "AFORAR CON SOLUCIÓN FISIOLÓGICA 0.9%", tie: "2 HRS", uni: "MG", via: "IV", den: "GI", lot: "Z25N020", cad: "nov-27", lab: "PISA"}
-        ];
-
         let CAT_DATA = [];
         let DOSIS_DATA = [];
         let currentTab = "DIARIA";
         let currentSrv = "TODOS";
 
-        // --- INICIALIZACIÓN ---
-        // 1. Escuchar Catálogo/Lotes
+        // Escuchar Catálogo
         db.collection("catalogo").onSnapshot(snap => {
-            if(snap.empty) { // Si Firebase está vacío, cargar los iniciales
-                INITIAL_MEDS.forEach(m => db.collection("catalogo").add(m));
-            }
             CAT_DATA = [];
             snap.forEach(doc => CAT_DATA.push({id: doc.id, ...doc.data()}));
             CAT_DATA.sort((a,b) => a.nombre.localeCompare(b.nombre));
             render();
         });
 
-        // 2. Escuchar Dosis del día
+        // Escuchar Dosis
         db.collection("dosis").orderBy("ts", "desc").onSnapshot(snap => {
             DOSIS_DATA = [];
             snap.forEach(doc => DOSIS_DATA.push({id: doc.id, ...doc.data()}));
             render();
         });
 
-        // --- FLUJO RÁPIDO (ENTERS) ---
-        const inputs = ["f-cama", "f-nom", "f-dos", "f-hor"];
-        inputs.forEach(id => {
+        // Enters
+        const ids = ["f-cama", "f-nom", "f-dos", "f-hor"];
+        ids.forEach(id => {
             document.getElementById(id).addEventListener('keydown', e => {
                 if(e.key === 'Enter') {
                     e.preventDefault();
@@ -188,7 +169,7 @@
 
         medInput.addEventListener('keydown', e => { if(e.key === 'Enter') { e.preventDefault(); sugDiv.style.display="none"; document.getElementById('f-dos').focus(); } });
 
-        // --- LÓGICA DE NEGOCIO ---
+        // Negocio
         function getSrv(c) {
             const n = parseInt(c);
             if(n >= 220 && n <= 245) return "ONCOLOGIA";
@@ -209,10 +190,13 @@
 
             if(!cama || !nom || !config || isNaN(dos)) return alert("Revisa campos");
 
-            const volM = (dos / config.pre).toFixed(2);
-            let volF = (dos / config.con);
+            // --- NUEVA LÓGICA DE REDONDEO VOL MED ---
+            const volM_raw = dos / parseFloat(config.pre);
+            const volM = Math.round(volM_raw * 10) / 10; // Redondeo a 0.1
+
+            let volF = (dos / parseFloat(config.con));
             if(config.dil) volF = volF <= 1 ? 1 : (volF <= 3 ? 3 : Math.ceil(volF/5)*5);
-            else volF = volF.toFixed(1);
+            else volF = Math.round(volF * 10) / 10;
 
             db.collection("dosis").add({
                 tipo: currentTab, cama, nombre: nom, medicamento: medNom, dosis: dos,
@@ -221,7 +205,6 @@
                 ts: firebase.firestore.FieldValue.serverTimestamp()
             });
 
-            // Reset
             ["f-cama", "f-nom", "f-med", "f-dos", "f-hor"].forEach(i => document.getElementById(i).value = "");
             document.getElementById('f-cama').focus();
         }
@@ -229,20 +212,14 @@
         function render() {
             const view = document.getElementById('main-view');
             const nav = document.getElementById('srv-list');
-
-            if(currentTab === "LOTES") {
-                nav.innerHTML = ""; renderLotes(view); return;
-            }
-
+            if(currentTab === "LOTES") { nav.innerHTML = ""; renderLotes(view); return; }
             const filtrados = DOSIS_DATA.filter(d => d.tipo === currentTab);
             const srvs = [...new Set(filtrados.map(d => d.servicio))].sort();
             nav.innerHTML = `<div class="srv-item ${currentSrv==='TODOS'?'active':''}" onclick="currentSrv='TODOS';render()"><span>TODOS</span> <b>${filtrados.length}</b></div>` +
                 srvs.map(s => `<div class="srv-item ${currentSrv===s?'active':''}" onclick="currentSrv='${s}';render()"><span>${s}</span> <b>${filtrados.filter(x=>x.servicio===s).length}</b></div>`).join('');
-
             const final = currentSrv === 'TODOS' ? filtrados : filtrados.filter(d => d.servicio === currentSrv);
             const gps = {};
             final.forEach(d => { const k = `CAMA ${d.cama} - ${d.nombre}`; if(!gps[k]) gps[k]=[]; gps[k].push(d); });
-
             view.innerHTML = Object.keys(gps).sort().map(k => `
                 <div class="card ${currentTab==='PRN'?'prn':''}">
                     <div class="card-h">${k} <i class="material-icons" style="font-size:16px; color:#ccc; cursor:pointer" onclick="eliminar('${gps[k][0].id}')">delete</i></div>
@@ -255,7 +232,7 @@
         function renderLotes(cont) {
             cont.innerHTML = `
                 <div class="card" style="padding:15px; border-left-color: var(--green);">
-                    <div class="card-h" style="background:transparent; border:none; margin-bottom:10px">GESTIÓN TÉCNICA Y DE LOTES</div>
+                    <div class="card-h" style="background:transparent; border:none; margin-bottom:10px">GESTIÓN DE LOTES</div>
                     <table class="lote-table">
                         <thead><tr><th>MEDICAMENTO</th><th>LOTE</th><th>CADUCIDAD</th><th>LABORATORIO</th></tr></thead>
                         <tbody>
@@ -263,7 +240,7 @@
                                 <tr>
                                     <td><b>${m.nombre}</b></td>
                                     <td><input class="lote-input" value="${m.lot || ''}" onchange="updateLoteField('${m.id}', 'lot', this.value)"></td>
-                                    <td><input class="lote-input" type="text" value="${m.cad || ''}" onchange="updateLoteField('${m.id}', 'cad', this.value)"></td>
+                                    <td><input class="lote-input" value="${m.cad || ''}" onchange="updateLoteField('${m.id}', 'cad', this.value)"></td>
                                     <td><input class="lote-input" value="${m.lab || ''}" onchange="updateLoteField('${m.id}', 'lab', this.value)"></td>
                                 </tr>
                             `).join('')}
@@ -272,12 +249,10 @@
                 </div>`;
         }
 
-        // --- IMPRESIÓN ---
         function imprimirEtiquetas() {
             const zone = document.getElementById('print-zone');
             const data = DOSIS_DATA.filter(d => d.tipo === currentTab && (currentSrv === 'TODOS' || d.servicio === currentSrv));
             data.sort((a,b) => a.cama.localeCompare(b.cama, undefined, {numeric: true}));
-            
             const ms = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
             const fStr = `${new Date().getDate().toString().padStart(2,'0')}-${ms[new Date().getMonth()]}-${new Date().getFullYear().toString().slice(-2)}`;
 
@@ -287,16 +262,19 @@
                 for (let j = 0; j < 4; j++) {
                     const d = data[i+j];
                     if(d) {
-                        // LOGICA DE NOMBRE LIMPIO: AMIKACINA 500 MG -> AMIKACINA
                         const medLimpio = d.medicamento.split(/\s\d/)[0].trim();
-                        const vmStr = (d.volM !== "0.00") ? ` - ${d.volM}${d.dil ? " ML" : ""}` : "";
+                        
+                        // --- LÓGICA DE LIMPIEZA DE DECIMALES .0 ---
+                        const volM_clean = Number(d.volM); // Elimina el .0 si es entero
+                        const vmStr = (volM_clean > 0) ? ` - ${volM_clean}${d.dil ? " ML" : ""}` : "";
+                        
                         h += `<td class="label-cell">
                             <p class="p-name">NOMBRE: ${d.nombre}</p>
                             <p class="bold">SERVICIO: ${d.servicio} &nbsp; CAMA: ${d.cama}</p>
                             <p>FECHA: ${fStr} &nbsp; E. RICARDO L.</p>
                             <p class="bold">${medLimpio} ${d.dosis} ${d.uni}${vmStr} ${d.via}${d.tie ? ' P/'+d.tie : ''}</p>
                             <p>${d.dil || ""}</p>
-                            <p class="bold">VOL. FINAL: ${d.volF} ML &nbsp; HORARIO: ${d.horario}</p>
+                            <p class="bold">VOL. FINAL: ${Number(d.volF)} ML &nbsp; HORARIO: ${d.horario}</p>
                         </td>`;
                     } else h += '<td></td>';
                 }
@@ -306,7 +284,6 @@
             window.print();
         }
 
-        // --- HELPERS ---
         function setTab(t) { 
             currentTab = t; currentSrv = 'TODOS'; render(); 
             document.querySelectorAll('.tab').forEach(x => x.classList.remove('active','active-prn','active-lotes')); 
@@ -315,7 +292,6 @@
         }
         function updateLoteField(id, field, val) { db.collection("catalogo").doc(id).update({ [field]: val }); }
         function eliminar(id) { if(confirm("¿Eliminar?")) db.collection("dosis").doc(id).delete(); }
-
     </script>
 </body>
 </html>
