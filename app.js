@@ -68,39 +68,50 @@ function render() {
         </div>`).join('');
 }
 
-// --- IMPRESIÓN DIRECTA VERTICAL ---
+// --- IMPRESIÓN DIRECTA (4 COLUMNAS CON NEGRITAS) ---
 window.printLabels = () => {
-    // 1. Limpiar el otro contenedor para evitar duplicados
     document.getElementById('sum-area').innerHTML = "";
-    
     const data = etiquetas.filter(e => e.TIPO === tabActiva && (srvActivo === "TODOS" || e.SERVICIO === srvActivo));
     if (data.length === 0) return alert("Sin datos");
+    
     const mNames = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
     const fStr = `${HOY_REF.getDate().toString().padStart(2,'0')}-${mNames[HOY_REF.getMonth()]}-${HOY_REF.getFullYear().toString().slice(-2)}`;
     
-    let html = '<div class="label-vertical-stack">';
-    data.forEach(e => {
-        let vm = parseFloat(e["VOL MED"]);
-        let vMedStr = (!isNaN(vm) && vm > 0) ? ` - ${vm} ML` : "";
-        let lineaM = `${e.MEDICAMENTO} ${e.DOSIS} ${e.UNIDADES}${vMedStr} ${e.VIA} ${e.TIEMPO ? "P/"+e.TIEMPO : ""}`;
-        html += `<div class="label-box">
-            <p class="bold">NOMBRE: ${e.NOMBRE}</p><p class="bold">SRV: ${e.SERVICIO} &nbsp; CAMA: ${e.CAMA}</p>
-            <p>FECHA: ${fStr} &nbsp; E. RICARDO L.</p><p class="bold">${lineaM}</p>
-            ${(e.SOLUCION && e.SOLUCION !== "null") ? `<p>${e.SOLUCION}</p>` : ''}
-            <p class="bold">VOL. FINAL: ${e["VOL FINAL"]} ML &nbsp; HR: ${e.HORARIO || ""}</p>
-        </div>`;
-    });
-    html += '</div>';
+    let html = '<table class="label-table">';
+    for (let i = 0; i < data.length; i += 4) {
+        html += '<tr>';
+        for (let j = 0; j < 4; j++) {
+            const idx = i + j;
+            if (idx < data.length) {
+                let e = data[idx];
+                let vm = parseFloat(e["VOL MED"]);
+                let vMedStr = (!isNaN(vm) && vm > 0) ? ` - ${vm} ML` : "";
+                
+                // LÍNEA MEDICAMENTO (CON NEGRITA)
+                let lineaM = `<b>${e.MEDICAMENTO} ${e.DOSIS} ${e.UNIDADES}${vMedStr} ${e.VIA} ${e.TIEMPO ? "P/"+e.TIEMPO : ""}</b>`;
+                let sol = (e.SOLUCION && e.SOLUCION !== "null" && e.SOLUCION.trim() !== "") ? `<p>${e.SOLUCION}</p>` : '';
+                
+                html += `<td class="label-td">
+                    <p class="bold">NOMBRE: ${e.NOMBRE}</p>
+                    <p class="bold">SRV: ${e.SERVICIO} &nbsp; CAMA: ${e.CAMA}</p>
+                    <p>FECHA: ${fStr} &nbsp; E. RICARDO L.</p>
+                    <p>${lineaM}</p>
+                    ${sol}
+                    <p class="bold">VOL. FINAL: ${e["VOL FINAL"]} ML &nbsp; HR: ${e.HORARIO || ""}</p>
+                </td>`;
+            } else html += '<td></td>';
+        }
+        html += '</tr>';
+    }
     
-    document.getElementById('print-area').innerHTML = html;
+    const container = document.getElementById('print-area');
+    container.innerHTML = html + '</table>';
     window.print();
 };
 
 // --- SUMATORIA (CALCULADORA) ---
 window.calcSuministros = () => {
-    // 1. Limpiar el otro contenedor
     document.getElementById('print-area').innerHTML = "";
-
     const data = etiquetas.filter(e => e.TIPO === tabActiva);
     if (data.length === 0) return alert("Pestaña vacía");
     const cons = {};
@@ -136,7 +147,7 @@ window.calcSuministros = () => {
     window.print();
 };
 
-// --- RESTO DE FUNCIONES CRUD ---
+// --- CRUD ---
 window.goTab = (t) => { tabActiva = t; srvActivo = "TODOS"; render(); };
 window.setSrv = (s) => { srvActivo = s; render(); };
 function esExp(s) { if(!s || s==="null" || s==="") return false; const p = s.split('-'); return new Date(p[0], p[1]-1, 1) < new Date(HOY_REF.getFullYear(), HOY_REF.getMonth(), 1); }
