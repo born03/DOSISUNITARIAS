@@ -6,8 +6,7 @@ let tabActiva = "DIARIA";
 let srvActivo = "TODOS";
 let bloqueoSinc = false;
 let dataHash = "";
-
-const HOY_REF = new Date(2026, 2, 28); // Marzo 2026
+const HOY_REF = new Date(2026, 2, 28); 
 
 async function init() {
     await sync();
@@ -41,20 +40,15 @@ function render() {
     const main = document.getElementById('main-content');
     const side = document.getElementById('sidebar');
     if (tabActiva === "LOTES") { side.style.display = "none"; renderLotes(); return; }
-    
     side.style.display = "block";
     document.getElementById('btnDrive').style.display = (tabActiva === "PRN") ? "none" : "flex";
-    
     const dataTab = etiquetas.filter(e => (e.TIPO || "DIARIA") === tabActiva);
     const srvs = [...new Set(dataTab.map(e => e.SERVICIO))].sort();
-    
     document.getElementById('list-srv').innerHTML = `<div class="srv-item ${srvActivo==='TODOS'?'active':''}" onclick="setSrv('TODOS')">TODOS <span>${dataTab.length}</span></div>` +
         srvs.map(s => `<div class="srv-item ${srvActivo===s?'active':''}" onclick="setSrv('${s}')">${s} <span>${dataTab.filter(x=>x.SERVICIO===s).length}</span></div>`).join('');
-
     const final = srvActivo === "TODOS" ? dataTab : dataTab.filter(e => e.SERVICIO === srvActivo);
     const grupos = {};
     final.forEach(e => { const k = `Cama ${e.CAMA} - ${e.NOMBRE}`; if(!grupos[k]) grupos[k] = []; grupos[k].push(e); });
-
     main.innerHTML = Object.keys(grupos).sort().map(p => `
         <div class="card">
             <div class="card-header" style="border-bottom-color:${tabActiva==='PRN'?'#d32f2f':'#1a73e8'}">${p}</div>
@@ -62,7 +56,7 @@ function render() {
                 ${grupos[p].map(m => `
                     <tr>
                         <td style="width:30px"><input type="checkbox" class="cb-sel" data-id="${m.id}"></td>
-                        <td style="line-height:1.2"><b>${m.MEDICAMENTO}</b><br><small style="color:#777">${m.VIA}</small></td>
+                        <td style="line-height:1.2"><b>${m.MEDICAMENTO}</b></td>
                         <td>${m.DOSIS} ${m.UNIDADES}</td>
                         <td>${m.HORARIO || ''}</td>
                         <td style="text-align:right">
@@ -74,40 +68,39 @@ function render() {
         </div>`).join('');
 }
 
-// --- IMPRESIÓN DIRECTA SIN POSICIONAMIENTO ABSOLUTO ---
+// --- IMPRESIÓN DIRECTA VERTICAL ---
 window.printLabels = () => {
+    // 1. Limpiar el otro contenedor para evitar duplicados
+    document.getElementById('sum-area').innerHTML = "";
+    
     const data = etiquetas.filter(e => e.TIPO === tabActiva && (srvActivo === "TODOS" || e.SERVICIO === srvActivo));
     if (data.length === 0) return alert("Sin datos");
     const mNames = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
     const fStr = `${HOY_REF.getDate().toString().padStart(2,'0')}-${mNames[HOY_REF.getMonth()]}-${HOY_REF.getFullYear().toString().slice(-2)}`;
     
-    let html = '<table class="label-table">';
-    for (let i = 0; i < data.length; i += 4) {
-        html += '<tr>';
-        for (let j = 0; j < 4; j++) {
-            if (i+j < data.length) {
-                let e = data[i+j];
-                let vm = parseFloat(e["VOL MED"]);
-                let vMedStr = (!isNaN(vm) && vm > 0) ? ` - ${vm}` : "";
-                let lineaM = `${e.MEDICAMENTO} ${e.DOSIS} ${e.UNIDADES}${vMedStr} ${e.VIA} ${e.TIEMPO ? "P/"+e.TIEMPO : ""}`;
-                html += `<td class="label-td">
-                    <p class="bold">NOMBRE: ${e.NOMBRE}</p><p class="bold">SRV: ${e.SERVICIO} &nbsp; CAMA: ${e.CAMA}</p>
-                    <p>FECHA: ${fStr} &nbsp; E. RICARDO L.</p><p class="bold">${lineaM}</p>
-                    ${(e.SOLUCION && e.SOLUCION !== "null") ? `<p>${e.SOLUCION}</p>` : ''}
-                    <p class="bold">VOL. FINAL: ${e["VOL FINAL"]} ML &nbsp; HR: ${e.HORARIO || ""}</p>
-                </td>`;
-            } else html += '<td></td>';
-        }
-        html += '</tr>';
-    }
-    document.getElementById('print-area').innerHTML = html + '</table>';
-    document.getElementById('print-area').classList.add('is-printing');
+    let html = '<div class="label-vertical-stack">';
+    data.forEach(e => {
+        let vm = parseFloat(e["VOL MED"]);
+        let vMedStr = (!isNaN(vm) && vm > 0) ? ` - ${vm} ML` : "";
+        let lineaM = `${e.MEDICAMENTO} ${e.DOSIS} ${e.UNIDADES}${vMedStr} ${e.VIA} ${e.TIEMPO ? "P/"+e.TIEMPO : ""}`;
+        html += `<div class="label-box">
+            <p class="bold">NOMBRE: ${e.NOMBRE}</p><p class="bold">SRV: ${e.SERVICIO} &nbsp; CAMA: ${e.CAMA}</p>
+            <p>FECHA: ${fStr} &nbsp; E. RICARDO L.</p><p class="bold">${lineaM}</p>
+            ${(e.SOLUCION && e.SOLUCION !== "null") ? `<p>${e.SOLUCION}</p>` : ''}
+            <p class="bold">VOL. FINAL: ${e["VOL FINAL"]} ML &nbsp; HR: ${e.HORARIO || ""}</p>
+        </div>`;
+    });
+    html += '</div>';
+    
+    document.getElementById('print-area').innerHTML = html;
     window.print();
-    document.getElementById('print-area').classList.remove('is-printing');
 };
 
 // --- SUMATORIA (CALCULADORA) ---
 window.calcSuministros = () => {
+    // 1. Limpiar el otro contenedor
+    document.getElementById('print-area').innerHTML = "";
+
     const data = etiquetas.filter(e => e.TIPO === tabActiva);
     if (data.length === 0) return alert("Pestaña vacía");
     const cons = {};
@@ -140,18 +133,14 @@ window.calcSuministros = () => {
 
     if(venci) alert("¡ATENCIÓN! MEDICAMENTOS CADUCADOS DETECTADOS.");
     document.getElementById('sum-area').innerHTML = h;
-    document.getElementById('sum-area').classList.add('is-printing');
     window.print();
-    document.getElementById('sum-area').classList.remove('is-printing');
 };
 
-// --- CRUD ---
+// --- RESTO DE FUNCIONES CRUD ---
 window.goTab = (t) => { tabActiva = t; srvActivo = "TODOS"; render(); };
 window.setSrv = (s) => { srvActivo = s; render(); };
 function esExp(s) { if(!s || s==="null" || s==="") return false; const p = s.split('-'); return new Date(p[0], p[1]-1, 1) < new Date(HOY_REF.getFullYear(), HOY_REF.getMonth(), 1); }
-
 window.openAdd = () => { document.getElementById('f-id').value = ""; document.getElementById('formEtiq').reset(); document.getElementById('box-vf').style.display = "none"; document.getElementById('modal-etiq').style.display = "flex"; };
-
 window.editEtiq = (id) => {
     const e = etiquetas.find(x => x.id === id);
     document.getElementById('f-id').value = e.id;
@@ -160,7 +149,6 @@ window.editEtiq = (id) => {
     document.getElementById('f-hora').value = e.HORARIO; document.getElementById('f-vf').value = e["VOL FINAL"];
     document.getElementById('box-vf').style.display = "block"; document.getElementById('modal-etiq').style.display = "flex";
 };
-
 window.saveEtiq = async (ev) => {
     ev.preventDefault();
     const med = document.getElementById('f-med').value.toUpperCase().trim();
@@ -171,7 +159,7 @@ window.saveEtiq = async (ev) => {
     const obj = {
         id, TIPO: tabActiva, CAMA: document.getElementById('f-cama').value, NOMBRE: document.getElementById('f-nombre').value.toUpperCase().trim(),
         MEDICAMENTO: conf.MEDICAMENTO, DOSIS: dosis, HORARIO: document.getElementById('f-hora').value, SERVICIO: getSrv(document.getElementById('f-cama').value),
-        "VOL MED": (dosis/parseFloat(conf.PRESENTACION || 1)).toFixed(1), "VOL FINAL": document.getElementById('f-vf').value || calcVF(dosis, conf.CONCENTRACION, conf.DILUYENTE),
+        "VOL MED": (dosis/parseFloat(conf.PRESENTACION || 1)).toFixed(2), "VOL FINAL": document.getElementById('f-vf').value || calcVF(dosis, conf.CONCENTRACION, conf.DILUYENTE),
         UNIDADES: conf.UNIDADES || "MG", VIA: conf.VIA || "IV", SOLUCION: conf.DILUYENTE || "", TIEMPO: conf.TIEMPO || "", fecha_registro: new Date().toISOString()
     };
     const idx = etiquetas.findIndex(x => x.id === id);
@@ -182,17 +170,14 @@ window.saveEtiq = async (ev) => {
     } else etiquetas.push(obj);
     document.getElementById('modal-etiq').style.display = "none"; render(); await push();
 };
-
 async function push() { bloqueoSinc = true; await fetch(URL_SCRIPT, { method: 'POST', body: JSON.stringify({action: "SYNC", datos: etiquetas}), mode: 'no-cors'}); bloqueoSinc = false; }
 function calcVF(d, c, l) { let v = d/parseFloat(c || 1); if(!l) return v.toFixed(1); return v<=1?1:(v<=3?3:Math.ceil(v/5)*5); }
 function getSrv(c) { const n = Number(c); if(n>=220 && n<=245) return "ONCOLOGIA"; if(n>=501 && n<=521) return "INFECTOLOGIA"; if(n>=522 && n<=535) return "CIRUGIA"; if(n>=536 && n<=542) return "GASTRO"; if(n>=543 && n<=549) return "TRAUMATOLOGIA"; if(n>=550 && n<=559) return "MED INT"; return "URGENCIAS"; }
-
 window.delSelected = async () => {
     const ids = Array.from(document.querySelectorAll('.cb-sel:checked')).map(c => c.dataset.id);
     if (ids.length === 0 || !confirm("¿Eliminar?")) return;
     etiquetas = etiquetas.filter(e => !ids.includes(e.id)); render(); await push();
 };
-
 window.sendDrive = async () => {
     const data = etiquetas.filter(e => e.TIPO === "DIARIA" && (srvActivo === "TODOS" || e.SERVICIO === srvActivo));
     if (data.length === 0) return alert("Solo Diarias");
@@ -200,7 +185,6 @@ window.sendDrive = async () => {
     await fetch(URL_SCRIPT, { method: 'POST', body: JSON.stringify({ action: "DOC", datos: data }), mode: 'no-cors' });
     alert("Enviado");
 };
-
 function renderLotes() {
     const main = document.getElementById('main-content');
     main.innerHTML = `<input type="text" id="q-lote" placeholder="Buscar..." style="width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;margin-bottom:15px;box-sizing:border-box;"><div id="grid-lotes"></div>`;
@@ -217,7 +201,6 @@ function renderLotes() {
     };
     document.getElementById('q-lote').oninput({target:{value:''}});
 }
-
 window.openLoteModal = (nom) => {
     const m = baseMeds.find(x => x.MEDICAMENTO === nom);
     document.getElementById('lt-id').value = nom; document.getElementById('lt-title').innerText = nom;
@@ -225,7 +208,6 @@ window.openLoteModal = (nom) => {
     document.getElementById('lt-cad').value = m.CADUCIDAD || ""; document.getElementById('lt-lab').value = m.LABORATORIO || "";
     document.getElementById('modal-lote').style.display = 'flex';
 };
-
 window.saveLote = async (e) => {
     e.preventDefault();
     const m = baseMeds.find(x => x.MEDICAMENTO === document.getElementById('lt-id').value);
@@ -234,5 +216,4 @@ window.saveLote = async (e) => {
     bloqueoSinc = true; await fetch(URL_SCRIPT, { method: 'POST', body: JSON.stringify({action: "UPDATE_CONFIG", datos: [m]}), mode: 'no-cors'});
     bloqueoSinc = false; document.getElementById('modal-lote').style.display='none'; renderLotes();
 };
-
 window.moverTab = async (id) => { const i = etiquetas.findIndex(x => x.id === id); etiquetas[i].TIPO = etiquetas[i].TIPO === "DIARIA" ? "PRN" : "DIARIA"; render(); await push(); };
