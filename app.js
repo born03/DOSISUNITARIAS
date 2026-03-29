@@ -7,7 +7,7 @@ let servicioActual = "TODOS";
 let sincronizando = false;
 let hashAnterior = "";
 
-const HOY = new Date(2026, 2, 28); // Referencia
+const HOY = new Date(2026, 2, 28); 
 
 // --- INICIO ---
 async function iniciar() {
@@ -72,15 +72,15 @@ function dibujarInterfaz() {
                         <td>${m.DOSIS} ${m.UNIDADES}</td>
                         <td>${m.HORARIO || ''}</td>
                         <td style="text-align:right">
-                            <button onclick="moverEtiqueta('${m.id}')" style="border:none;background:none;color:#5f6368;"><i class="material-icons" style="font-size:18px">swap_horiz</i></button>
-                            <button onclick="editarEtiq('${m.id}')" style="border:none;background:none;color:#5f6368;"><i class="material-icons" style="font-size:18px">edit</i></button>
+                            <button onclick="moverEtiqueta('${m.id}')" style="border:none;background:none;color:#5f6368;cursor:pointer;"><i class="material-icons" style="font-size:18px">swap_horiz</i></button>
+                            <button onclick="editarEtiq('${m.id}')" style="border:none;background:none;color:#5f6368;cursor:pointer;"><i class="material-icons" style="font-size:18px">edit</i></button>
                         </td>
                     </tr>`).join('')}
             </table>
         </div>`).join('');
 }
 
-// --- IMPRESIÓN CORREGIDA (ANTI-NaN) ---
+// --- IMPRESIÓN DIRECTA SIN AMONTONAR ---
 window.imprimirEtiquetasDirecto = () => {
     const data = listaEtiquetas.filter(e => (e.TIPO === pestañaActual) && (servicioActual === "TODOS" || e.SERVICIO === servicioActual));
     if (data.length === 0) return alert("Sin datos");
@@ -115,8 +115,14 @@ window.imprimirEtiquetasDirecto = () => {
     }
     const container = document.getElementById('print-labels-container');
     container.innerHTML = html + '</table>';
-    container.classList.add('printing-now');
-    setTimeout(() => { window.print(); container.classList.remove('printing-now'); container.innerHTML = ""; }, 500);
+    
+    // Activar clase de impresión
+    container.classList.add('is-printing');
+    setTimeout(() => {
+        window.print();
+        container.classList.remove('is-printing');
+        container.innerHTML = "";
+    }, 500);
 };
 
 // --- SUMATORIA CORREGIDA ---
@@ -145,25 +151,31 @@ window.generarSuministros = () => {
         }
     });
 
-    let h = `<h2 style="text-align:center">REPORTE TÉCNICO DE SUMINISTROS (${pestañaActual})</h2>
+    let h = `<div style="text-align:center; font-family:sans-serif; padding:20px;">
+             <h2>REPORTE TÉCNICO DE SUMINISTROS (${pestañaActual})</h2>
              <table class="sum-table"><thead><tr><th>MEDICAMENTO</th><th>TOTAL</th><th>DENOMINACIÓN</th><th>LOTE</th><th>CADUCIDAD</th><th>LAB</th></tr></thead><tbody>`;
     Object.keys(cons).sort().forEach(med => {
         const info = baseMedicamentos.find(x => x.MEDICAMENTO === med) || {};
         const v = esVencido(info.CADUCIDAD); if(v) venci = true;
         h += `<tr class="${v?'expired-row':''}"><td>${med}</td><td><b>${Math.round(cons[med]*100)/100}</b></td><td>${info.DENOMINACION||''}</td><td>${info.LOTE||''}</td><td>${v?'• ':''}${info.CADUCIDAD||''}</td><td>${info.LABORATORIO||''}</td></tr>`;
     });
-    h += `</tbody></table><br><h3 style="text-align:center">JERINGAS</h3>
-          <table class="sum-table" style="width:50%;margin:0 auto;"><thead><tr><th>TIPO</th><th>PIEZAS</th></tr></thead><tbody>`;
+    h += `</tbody></table><br><h3>JERINGAS NECESARIAS</h3>
+          <table class="sum-table" style="width:50%; margin:0 auto;"><thead><tr><th>TIPO</th><th>PIEZAS</th></tr></thead><tbody>`;
     for(let t in jer) if(jer[t]>0) h += `<tr><td>${t}</td><td><b>${jer[t]}</b></td></tr>`;
-    h += `</tbody></table>`;
+    h += `</tbody></table></div>`;
 
     const container = document.getElementById('print-summary-container');
     container.innerHTML = h;
-    container.classList.add('printing-now');
-    setTimeout(() => { window.print(); container.classList.remove('printing-now'); container.innerHTML = ""; }, 500);
+    container.classList.add('is-printing');
+    setTimeout(() => {
+        if(venci) alert("¡ATENCIÓN! MEDICAMENTOS CADUCADOS DETECTADOS.");
+        window.print();
+        container.classList.remove('is-printing');
+        container.innerHTML = "";
+    }, 500);
 };
 
-// --- RESTO DE FUNCIONES ---
+// --- OTRAS FUNCIONES ---
 window.setTab = (t) => { pestañaActual = t; servicioActual = "TODOS"; dibujarInterfaz(); };
 window.filtrarSrv = (s) => { servicioActual = s; dibujarInterfaz(); };
 function esVencido(s) { if(!s || s==="null" || s==="") return false; const p = s.split('-'); return new Date(p[0], p[1]-1, 1) < new Date(HOY.getFullYear(), HOY.getMonth(), 1); }
@@ -229,14 +241,14 @@ function configurarEntradas() {
         const ex = listaEtiquetas.find(x => x.CAMA === e.target.value);
         if(ex) document.getElementById('in-nombre').value = ex.NOMBRE;
     });
-    document.getElementById('btnSum').onclick = generarSuministros;
-    document.getElementById('btnDel').onclick = async () => {
-        const ids = Array.from(document.querySelectorAll('.cb-sel:checked')).map(c => c.dataset.id);
-        if (ids.length === 0 || !confirm("¿Eliminar?")) return;
-        listaEtiquetas = listaEtiquetas.filter(e => !ids.includes(e.id));
-        dibujarInterfaz(); await subir();
-    };
 }
+
+window.borrarSeleccionados = async () => {
+    const ids = Array.from(document.querySelectorAll('.cb-sel:checked')).map(c => c.dataset.id);
+    if (ids.length === 0 || !confirm("¿Eliminar?")) return;
+    listaEtiquetas = listaEtiquetas.filter(e => !ids.includes(e.id));
+    dibujarInterfaz(); await subir();
+};
 
 window.enviarAlDrive = async () => {
     const data = listaEtiquetas.filter(e => e.TIPO === "DIARIA" && (servicioActual === "TODOS" || e.SERVICIO === servicioActual));
