@@ -8,66 +8,64 @@
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <style>
         /* INTERFAZ DE USUARIO */
-        body { font-family: 'Roboto', sans-serif; background-color: #f1f3f4; margin: 0; padding-top: 110px; padding-bottom: 90px; }
+        body { font-family: 'Roboto', sans-serif; background-color: #f1f3f4; margin: 0; padding-top: 115px; padding-bottom: 90px; }
         .header { background: #1a73e8; color: white; position: fixed; top: 0; width: 100%; height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 15px; z-index: 1000; box-sizing: border-box; }
         .tabs { background: white; position: fixed; top: 60px; width: 100%; height: 50px; display: flex; z-index: 999; border-bottom: 1px solid #ddd; }
         .tab { flex: 1; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; color: #5f6368; font-size: 12px; }
         .tab.active { color: #1a73e8; border-bottom: 3px solid #1a73e8; }
         .tab.active-prn { color: #d32f2f; border-bottom: 3px solid #d32f2f; }
         .tab.active-lotes { color: #34a853; border-bottom: 3px solid #34a853; }
+        
         .container { display: flex; max-width: 1200px; margin: 0 auto; padding: 0 10px; gap: 15px; }
         .sidebar { width: 180px; background: white; border-radius: 8px; padding: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); position: sticky; top: 120px; height: fit-content; }
         .srv-item { padding: 10px; border-radius: 4px; cursor: pointer; font-size: 13px; margin-bottom: 2px; }
         .srv-item.active { background: #e8f0fe; color: #1a73e8; font-weight: bold; }
+        
         .main-content { flex: 1; }
         .card { background: white; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: hidden; }
         .card-header { padding: 10px; background: #f8f9fa; border-bottom: 2px solid #1a73e8; font-weight: bold; font-size: 13px; }
         .med-table { width: 100%; border-collapse: collapse; }
-        .med-table td { padding: 8px; border-bottom: 1px solid #eee; font-size: 13px; }
+        .med-table td { padding: 10px; border-bottom: 1px solid #eee; font-size: 13px; }
+
         .fab { position: fixed; bottom: 100px; right: 20px; width: 56px; height: 56px; border-radius: 50%; background: #1a73e8; color: white; border: none; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 1001; cursor: pointer; }
         .action-bar { position: fixed; bottom: 0; width: 100%; background: white; padding: 15px; display: flex; justify-content: center; gap: 10px; border-top: 1px solid #ddd; z-index: 1000; box-sizing: border-box; }
         .btn { border: none; padding: 12px 20px; border-radius: 8px; font-weight: bold; color: white; cursor: pointer; display: flex; align-items: center; gap: 5px; font-size: 13px; }
+
         .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center; }
         .modal { background: white; width: 92%; max-width: 400px; border-radius: 12px; padding: 20px; box-sizing: border-box; }
         .field { margin-bottom: 12px; }
         .field label { display: block; font-size: 11px; font-weight: bold; color: #1a73e8; margin-bottom: 4px; }
         .field input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
 
-        /* CONTENEDORES DE IMPRESIÓN (OCULTOS EN WEB) */
         #print-area, #sum-area { display: none; }
 
         @media (max-width: 768px) { .sidebar { display: none; } }
 
-        /* --- ESTILOS DE IMPRESIÓN REALES --- */
+        /* --- CONFIGURACIÓN DE IMPRESIÓN --- */
         @media print {
+            @page { margin: 5mm; size: letter; }
             body { padding: 0; margin: 0; background: white; }
             .header, .tabs, .container, .fab, .action-bar, .overlay { display: none !important; }
             
             #print-area, #sum-area { display: block !important; width: 100% !important; }
             
-            /* ETIQUETAS VERTICALES (1 SOLA COLUMNA CENTRADA) */
-            .label-vertical-stack { 
-                width: 100%; 
-                display: flex; 
-                flex-direction: column; 
-                align-items: center; 
-            }
-            .label-box { 
-                width: 50mm; /* Ancho estándar de etiqueta */
+            /* Cuadrícula de 4 Columnas */
+            .label-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+            .label-td { 
+                width: 25%; 
                 height: 23.5mm; 
                 border: 0.1pt dashed #ccc; 
                 padding: 1.5mm; 
                 font-size: 6.2pt; 
+                vertical-align: top; 
                 font-family: sans-serif; 
                 box-sizing: border-box; 
-                line-height: 1.2;
-                margin-bottom: 2px;
-                page-break-inside: avoid;
+                line-height: 1.15; 
+                overflow: hidden;
             }
-            .label-box p { margin: 0; padding: 0; }
+            .label-td p { margin: 0; padding: 0; display: block; }
             .bold { font-weight: bold; }
             
-            /* TABLA SUMATORIA */
             .st-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
             .st-table th, .st-table td { border: 1px solid black; padding: 5px; font-size: 8.5pt; text-align: center; }
         }
