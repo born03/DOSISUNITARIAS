@@ -68,9 +68,11 @@ function render() {
         </div>`).join('');
 }
 
-// --- IMPRESIÓN DIRECTA (4 COLUMNAS CON NEGRITAS) ---
+// --- IMPRESIÓN DIRECTA (4 COLUMNAS + NEGRITAS + SIN ENCONAR) ---
 window.printLabels = () => {
+    // Limpiamos áreas para evitar cruces
     document.getElementById('sum-area').innerHTML = "";
+    
     const data = etiquetas.filter(e => e.TIPO === tabActiva && (srvActivo === "TODOS" || e.SERVICIO === srvActivo));
     if (data.length === 0) return alert("Sin datos");
     
@@ -87,25 +89,27 @@ window.printLabels = () => {
                 let vm = parseFloat(e["VOL MED"]);
                 let vMedStr = (!isNaN(vm) && vm > 0) ? ` - ${vm} ML` : "";
                 
-                // LÍNEA MEDICAMENTO (CON NEGRITA)
-                let lineaM = `<b>${e.MEDICAMENTO} ${e.DOSIS} ${e.UNIDADES}${vMedStr} ${e.VIA} ${e.TIEMPO ? "P/"+e.TIEMPO : ""}</b>`;
+                // Línea de medicamento (Bold) con espacio dosis-unidades
+                let lineaM = `${e.MEDICAMENTO} ${e.DOSIS} ${e.UNIDADES}${vMedStr} ${e.VIA} ${e.TIEMPO ? "P/"+e.TIEMPO : ""}`;
                 let sol = (e.SOLUCION && e.SOLUCION !== "null" && e.SOLUCION.trim() !== "") ? `<p>${e.SOLUCION}</p>` : '';
                 
                 html += `<td class="label-td">
                     <p class="bold">NOMBRE: ${e.NOMBRE}</p>
-                    <p class="bold">SRV: ${e.SERVICIO} &nbsp; CAMA: ${e.CAMA}</p>
+                    <p class="bold">SERVICIO: ${e.SERVICIO} &nbsp; CAMA: ${e.CAMA}</p>
                     <p>FECHA: ${fStr} &nbsp; E. RICARDO L.</p>
-                    <p>${lineaM}</p>
+                    <p class="bold">${lineaM}</p>
                     ${sol}
-                    <p class="bold">VOL. FINAL: ${e["VOL FINAL"]} ML &nbsp; HR: ${e.HORARIO || ""}</p>
+                    <p class="bold">VOL. FINAL: ${e["VOL FINAL"]} ML &nbsp; HORARIO: ${e.HORARIO || ""}</p>
                 </td>`;
-            } else html += '<td></td>';
+            } else {
+                html += '<td></td>';
+            }
         }
         html += '</tr>';
     }
+    html += '</table>';
     
-    const container = document.getElementById('print-area');
-    container.innerHTML = html + '</table>';
+    document.getElementById('print-area').innerHTML = html;
     window.print();
 };
 
