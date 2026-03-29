@@ -7,69 +7,71 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <style>
-        /* INTERFAZ VISUAL EN PANTALLA */
-        @media screen {
-            body { font-family: 'Roboto', sans-serif; background-color: #f1f3f4; margin: 0; padding-top: 115px; padding-bottom: 90px; overflow-x: hidden; }
-            .header { background: #1a73e8; color: white; position: fixed; top: 0; width: 100%; height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 15px; z-index: 1000; box-sizing: border-box; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
-            .tabs { background: white; position: fixed; top: 60px; width: 100%; height: 50px; display: flex; z-index: 900; border-bottom: 1px solid #ddd; }
-            .tab { flex: 1; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; color: #5f6368; font-size: 12px; transition: 0.3s; }
-            .tab.active { color: #1a73e8; border-bottom: 3px solid #1a73e8; background: #e8f0fe; }
-            .tab.active-prn { color: #d32f2f; border-bottom: 3px solid #d32f2f; background: #ffebee; }
-            .tab.active-lotes { color: #34a853; border-bottom: 3px solid #34a853; background: #e8f5e9; }
+        /* INTERFAZ DE USUARIO */
+        body { font-family: 'Roboto', sans-serif; background-color: #f1f3f4; margin: 0; padding-top: 115px; padding-bottom: 90px; }
+        .header { background: #1a73e8; color: white; position: fixed; top: 0; width: 100%; height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 15px; z-index: 1000; box-sizing: border-box; }
+        .tabs { background: white; position: fixed; top: 60px; width: 100%; height: 50px; display: flex; z-index: 900; border-bottom: 1px solid #ddd; }
+        .tab { flex: 1; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; color: #5f6368; font-size: 12px; }
+        .tab.active { color: #1a73e8; border-bottom: 3px solid #1a73e8; background: #e8f0fe; }
+        .tab.active-prn { color: #d32f2f; border-bottom: 3px solid #d32f2f; background: #ffebee; }
+        .tab.active-lotes { color: #34a853; border-bottom: 3px solid #34a853; background: #e8f5e9; }
 
-            .container { display: flex; max-width: 1200px; margin: 0 auto; padding: 0 10px; gap: 15px; }
-            .sidebar { width: 180px; background: white; border-radius: 8px; padding: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); position: sticky; top: 120px; height: fit-content; }
-            .srv-item { padding: 10px; border-radius: 4px; cursor: pointer; font-size: 13px; margin-bottom: 2px; color: #5f6368; display: flex; justify-content: space-between; }
-            .srv-item.active { background: #e8f0fe; color: #1a73e8; font-weight: bold; }
-            
-            .content { flex: 1; min-height: 400px; }
-            .card { background: white; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: hidden; }
-            .card-header { padding: 10px; background: #f8f9fa; border-bottom: 2px solid #1a73e8; font-weight: bold; font-size: 13px; }
-            .med-table { width: 100%; border-collapse: collapse; }
-            .med-table td { padding: 10px; border-bottom: 1px solid #eee; font-size: 13px; }
+        .container { display: flex; max-width: 1200px; margin: 0 auto; padding: 0 10px; gap: 15px; }
+        .sidebar { width: 180px; background: white; border-radius: 8px; padding: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); position: sticky; top: 120px; height: fit-content; }
+        .srv-item { padding: 10px; border-radius: 4px; cursor: pointer; font-size: 13px; margin-bottom: 2px; }
+        .srv-item.active { background: #e8f0fe; color: #1a73e8; font-weight: bold; }
+        
+        .content { flex: 1; }
+        .card { background: white; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: hidden; }
+        .card-header { padding: 10px; background: #f8f9fa; border-bottom: 2px solid #1a73e8; font-weight: bold; font-size: 13px; }
+        .med-table { width: 100%; border-collapse: collapse; }
+        .med-table td { padding: 8px; border-bottom: 1px solid #eee; font-size: 13px; }
 
-            .fab { position: fixed; bottom: 100px; right: 20px; width: 56px; height: 56px; border-radius: 50%; background: #1a73e8; color: white; border: none; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 1000; cursor: pointer; }
-            .action-bar { position: fixed; bottom: 0; width: 100%; background: white; padding: 15px; display: flex; justify-content: center; gap: 10px; border-top: 1px solid #ddd; z-index: 999; box-sizing: border-box; }
-            .btn { border: none; padding: 12px 20px; border-radius: 8px; font-weight: bold; color: white; cursor: pointer; display: flex; align-items: center; gap: 5px; font-size: 13px; }
+        .fab { position: fixed; bottom: 100px; right: 20px; width: 56px; height: 56px; border-radius: 50%; background: #1a73e8; color: white; border: none; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 1000; cursor: pointer; }
+        .action-bar { position: fixed; bottom: 0; width: 100%; background: white; padding: 15px; display: flex; justify-content: center; gap: 10px; border-top: 1px solid #ddd; z-index: 999; box-sizing: border-box; }
+        .btn { border: none; padding: 12px 20px; border-radius: 8px; font-weight: bold; color: white; cursor: pointer; display: flex; align-items: center; gap: 5px; font-size: 13px; }
 
-            .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center; }
-            .modal { background: white; width: 92%; max-width: 450px; border-radius: 12px; padding: 20px; box-sizing: border-box; }
-            .field { margin-bottom: 12px; }
-            .field label { display: block; font-size: 11px; font-weight: bold; color: #1a73e8; margin-bottom: 4px; }
-            .field input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
+        .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center; }
+        .modal { background: white; width: 92%; max-width: 400px; border-radius: 12px; padding: 20px; box-sizing: border-box; }
+        .field { margin-bottom: 12px; }
+        .field label { display: block; font-size: 11px; font-weight: bold; color: #1a73e8; margin-bottom: 4px; }
+        .field input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
 
-            /* REPARACIÓN: Ocultos pero existentes para la impresora */
-            #print-labels-container, #print-summary-container {
-                position: absolute;
-                left: -9999px;
-                top: -9999px;
-                visibility: hidden;
-            }
+        /* REPARACIÓN: CONTENEDORES INVISIBLES EN PANTALLA */
+        #print-labels-container, #print-summary-container { display: none; }
 
-            @media (max-width: 768px) { .sidebar { display: none; } .container { flex-direction: column; } }
-        }
-
-        /* CONFIGURACIÓN PARA IMPRESORA */
+        /* --- ESTILOS DE IMPRESIÓN CORREGIDOS --- */
         @media print {
-            @page { margin: 0; size: letter; }
-            body { background: white; margin: 0; padding: 0; }
-            body * { visibility: hidden; }
-            
-            /* Clase que activa la visibilidad solo al imprimir */
-            .printing-now, .printing-now * {
-                visibility: visible !important;
-                position: absolute !important;
-                left: 0 !important;
-                top: 0 !important;
-                width: 100% !important;
+            /* 1. Escondemos toda la interfaz de la web */
+            .header, .tabs, .container, .fab, .action-bar, .overlay { display: none !important; }
+            body { padding: 0; margin: 0; background: white; }
+
+            /* 2. Mostramos el contenedor de impresión */
+            #print-labels-container.is-printing, #print-summary-container.is-printing {
                 display: block !important;
+                position: static !important;
+                width: 100% !important;
             }
 
+            /* 3. Estilo de las etiquetas (Cuadrícula) */
             .label-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-            .label-td { width: 25%; height: 23.5mm; border: 0.1pt dashed #ccc; padding: 1.5mm; font-size: 6.2pt; vertical-align: top; overflow: hidden; font-family: sans-serif; box-sizing: border-box; }
+            .label-td { 
+                width: 25%; 
+                height: 23.5mm; 
+                border: 0.1pt dashed #ccc; 
+                padding: 1.5mm; 
+                font-size: 6.2pt; 
+                vertical-align: top; 
+                overflow: hidden; 
+                font-family: sans-serif; 
+                box-sizing: border-box;
+                line-height: 1.1; /* Asegura que las líneas no se encimen */
+            }
+            .label-td p { margin: 0 0 1px 0; padding: 0; display: block; } /* Fuerza comportamiento de bloque */
             .bold { font-weight: bold; }
 
-            .sum-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+            /* 4. Estilo de Suministros (Centrado) */
+            .sum-table { width: 95%; border-collapse: collapse; margin: 20px auto; }
             .sum-table th, .sum-table td { border: 1px solid black; padding: 4px; font-size: 8.5pt; text-align: center; }
             .expired-row { color: red !important; text-decoration: underline; font-weight: bold; }
         }
@@ -78,18 +80,18 @@
 <body>
 
     <div class="header">
-        <div style="font-weight: bold;">SISTEMA CENTRAL IV</div>
+        <div style="font-weight: bold;">SISTEMA IV</div>
         <div style="display:flex; gap:8px;">
             <span id="dbStatus" style="font-size:10px;">...</span>
-            <button id="btnSum" class="btn" style="background:#673ab7; padding:8px;"><i class="material-icons">calculate</i></button>
-            <button id="btnDel" class="btn" style="background:#d32f2f; padding:8px;"><i class="material-icons">delete</i></button>
+            <button onclick="generarSuministros()" class="btn" style="background:#673ab7; padding:8px;"><i class="material-icons">calculate</i></button>
+            <button onclick="borrarSeleccionados()" class="btn" style="background:#d32f2f; padding:8px;"><i class="material-icons">delete</i></button>
         </div>
     </div>
 
     <div class="tabs">
-        <div id="tab-DIARIA" class="tab active" onclick="setTab('DIARIA')">DIARIA</div>
-        <div id="tab-PRN" class="tab" onclick="setTab('PRN')">PRN</div>
-        <div id="tab-LOTES" class="tab" onclick="setTab('LOTES')">LOTES</div>
+        <div id="tab-DIARIA" class="tab active" onclick="cambiarPestaña('DIARIA')">DIARIA</div>
+        <div id="tab-PRN" class="tab" onclick="cambiarPestaña('PRN')">PRN</div>
+        <div id="tab-LOTES" class="tab" onclick="cambiarPestaña('LOTES')">LOTES</div>
     </div>
 
     <div class="container">
@@ -109,7 +111,7 @@
     <div id="modal-etiq" class="overlay">
         <div class="modal">
             <h3 id="modal-titulo">Nueva Etiqueta</h3>
-            <form id="formEtiq" onsubmit="guardarNuevaEtiq(event)">
+            <form onsubmit="guardarNuevaEtiq(event)">
                 <input type="hidden" id="edit-id">
                 <div class="field"><label>CAMA</label><input type="text" id="in-cama" required></div>
                 <div class="field"><label>PACIENTE</label><input type="text" id="in-nombre" style="text-transform:uppercase" required></div>
@@ -121,7 +123,7 @@
                 <div class="field"><label>HORARIO</label><input type="text" id="in-horario" placeholder="Ej: 08:00"></div>
                 <div id="box-vf" class="field" style="display:none"><label>VOL. FINAL MANUAL</label><input type="number" step="0.1" id="in-vf"></div>
                 <button type="submit" class="btn" style="background:#1a73e8; width:100%; justify-content:center;">GUARDAR</button>
-                <button type="button" onclick="cerrarModales()" style="width:100%; margin-top:10px; background:none; border:none; color:#666; cursor:pointer;">CANCELAR</button>
+                <button type="button" onclick="cerrarTodosModales()" style="width:100%; margin-top:10px; background:none; border:none; color:#666; cursor:pointer;">CANCELAR</button>
             </form>
         </div>
     </div>
@@ -136,7 +138,7 @@
                 <div class="field"><label>Caducidad</label><input type="month" id="lt-cad"></div>
                 <div class="field"><label>Laboratorio</label><input type="text" id="lt-lab" style="text-transform:uppercase"></div>
                 <button type="submit" class="btn" style="background:#34a853; width:100%; justify-content:center;">ACTUALIZAR</button>
-                <button type="button" onclick="cerrarModales()" style="width:100%; margin-top:10px; background:none; border:none; color:#666; cursor:pointer;">CANCELAR</button>
+                <button type="button" onclick="cerrarTodosModales()" style="width:100%; margin-top:10px; background:none; border:none; color:#666; cursor:pointer;">CANCELAR</button>
             </form>
         </div>
     </div>
@@ -146,7 +148,7 @@
 
     <script type="module" src="app.js"></script>
     <script>
-        function cerrarModales() { document.querySelectorAll('.overlay').forEach(o => o.style.display = 'none'); }
+        function cerrarTodosModales() { document.querySelectorAll('.overlay').forEach(o => o.style.display = 'none'); }
     </script>
 </body>
 </html>
