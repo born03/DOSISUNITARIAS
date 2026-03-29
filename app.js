@@ -68,11 +68,8 @@ function render() {
         </div>`).join('');
 }
 
-// --- IMPRESIÓN DIRECTA (4 COLUMNAS + NEGRITAS + SIN ENCONAR) ---
 window.printLabels = () => {
-    // Limpiamos áreas para evitar cruces
     document.getElementById('sum-area').innerHTML = "";
-    
     const data = etiquetas.filter(e => e.TIPO === tabActiva && (srvActivo === "TODOS" || e.SERVICIO === srvActivo));
     if (data.length === 0) return alert("Sin datos");
     
@@ -88,8 +85,6 @@ window.printLabels = () => {
                 let e = data[idx];
                 let vm = parseFloat(e["VOL MED"]);
                 let vMedStr = (!isNaN(vm) && vm > 0) ? ` - ${vm} ML` : "";
-                
-                // Línea de medicamento (Bold) con espacio dosis-unidades
                 let lineaM = `${e.MEDICAMENTO} ${e.DOSIS} ${e.UNIDADES}${vMedStr} ${e.VIA} ${e.TIEMPO ? "P/"+e.TIEMPO : ""}`;
                 let sol = (e.SOLUCION && e.SOLUCION !== "null" && e.SOLUCION.trim() !== "") ? `<p>${e.SOLUCION}</p>` : '';
                 
@@ -99,21 +94,16 @@ window.printLabels = () => {
                     <p>FECHA: ${fStr} &nbsp; E. RICARDO L.</p>
                     <p class="bold">${lineaM}</p>
                     ${sol}
-                    <p class="bold">VOL. FINAL: ${e["VOL FINAL"]} ML &nbsp; HORARIO: ${e.HORARIO || ""}</p>
+                    <p class="bold">VOL. FINAL: ${e["VOL FINAL"]} ML &nbsp; HR: ${e.HORARIO || ""}</p>
                 </td>`;
-            } else {
-                html += '<td></td>';
-            }
+            } else html += '<td></td>';
         }
         html += '</tr>';
     }
-    html += '</table>';
-    
-    document.getElementById('print-area').innerHTML = html;
+    document.getElementById('print-area').innerHTML = html + '</table>';
     window.print();
 };
 
-// --- SUMATORIA (CALCULADORA) ---
 window.calcSuministros = () => {
     document.getElementById('print-area').innerHTML = "";
     const data = etiquetas.filter(e => e.TIPO === tabActiva);
@@ -151,7 +141,6 @@ window.calcSuministros = () => {
     window.print();
 };
 
-// --- CRUD ---
 window.goTab = (t) => { tabActiva = t; srvActivo = "TODOS"; render(); };
 window.setSrv = (s) => { srvActivo = s; render(); };
 function esExp(s) { if(!s || s==="null" || s==="") return false; const p = s.split('-'); return new Date(p[0], p[1]-1, 1) < new Date(HOY_REF.getFullYear(), HOY_REF.getMonth(), 1); }
