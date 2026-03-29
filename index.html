@@ -4,27 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>SISTEMA CENTRAL IV</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <style>
-        /* INTERFAZ DE USUARIO (WEB) */
-        body { font-family: 'Roboto', sans-serif; background-color: #f1f3f4; margin: 0; padding-top: 115px; padding-bottom: 90px; }
+        /* INTERFAZ DE USUARIO (SOLO WEB) */
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f1f3f4; margin: 0; padding-top: 115px; padding-bottom: 90px; }
         .header { background: #1a73e8; color: white; position: fixed; top: 0; width: 100%; height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 15px; z-index: 1000; box-sizing: border-box; }
         .tabs { background: white; position: fixed; top: 60px; width: 100%; height: 50px; display: flex; z-index: 999; border-bottom: 1px solid #ddd; }
         .tab { flex: 1; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; color: #5f6368; font-size: 12px; }
         .tab.active { color: #1a73e8; border-bottom: 3px solid #1a73e8; }
-        .tab.active-prn { color: #d32f2f; border-bottom: 3px solid #d32f2f; }
-        .tab.active-lotes { color: #34a853; border-bottom: 3px solid #34a853; }
         .container { display: flex; max-width: 1200px; margin: 0 auto; padding: 0 10px; gap: 15px; }
         .sidebar { width: 180px; background: white; border-radius: 8px; padding: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); position: sticky; top: 120px; height: fit-content; }
-        .srv-item { padding: 10px; border-radius: 4px; cursor: pointer; font-size: 13px; margin-bottom: 2px; }
-        .srv-item.active { background: #e8f0fe; color: #1a73e8; font-weight: bold; }
         .main-content { flex: 1; }
         .card { background: white; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: hidden; }
         .card-header { padding: 10px; background: #f8f9fa; border-bottom: 2px solid #1a73e8; font-weight: bold; font-size: 13px; }
         .med-table { width: 100%; border-collapse: collapse; }
         .med-table td { padding: 10px; border-bottom: 1px solid #eee; font-size: 13px; }
-        .fab { position: fixed; bottom: 100px; right: 20px; width: 56px; height: 56px; border-radius: 50%; background: #1a73e8; color: white; border: none; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 1001; cursor: pointer; }
+        .fab { position: fixed; bottom: 100px; right: 20px; width: 56px; height: 56px; border-radius: 50%; background: #1a73e8; color: white; border: none; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 1001; }
         .action-bar { position: fixed; bottom: 0; width: 100%; background: white; padding: 15px; display: flex; justify-content: center; gap: 10px; border-top: 1px solid #ddd; z-index: 1000; box-sizing: border-box; }
         .btn { border: none; padding: 12px 20px; border-radius: 8px; font-weight: bold; color: white; cursor: pointer; display: flex; align-items: center; gap: 5px; font-size: 13px; }
         .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center; }
@@ -33,31 +28,29 @@
         .field label { display: block; font-size: 11px; font-weight: bold; color: #1a73e8; margin-bottom: 4px; }
         .field input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
 
-        /* CONTENEDORES DE IMPRESIÓN (OCULTOS EN WEB) */
         #print-area, #sum-area { display: none; }
 
-        @media (max-width: 768px) { .sidebar { display: none; } }
-
-        /* --- CONFIGURACIÓN DE IMPRESIÓN CORREGIDA --- */
+        /* --- CONFIGURACIÓN DE IMPRESIÓN (MÁXIMA PRECISIÓN) --- */
         @media print {
             @page { margin: 5mm; size: letter; }
+            * { -webkit-print-color-adjust: exact; }
             body { padding: 0; margin: 0; background: white; }
             .header, .tabs, .container, .fab, .action-bar, .overlay { display: none !important; }
             
             #print-area, #sum-area { display: block !important; width: 100% !important; }
             
-            /* Cuadrícula de 4 Columnas Compacta */
             .label-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
             .label-td { 
                 width: 25%; 
                 height: 23.5mm; 
                 border: 0.1pt dashed #ccc; 
-                padding: 1mm 1.5mm; /* Margen interno reducido */
-                font-size: 6.5pt; /* Tamaño igual al Drive */
+                padding: 1mm 1.5mm !important; 
+                font-size: 6.5pt !important; 
                 vertical-align: top; 
-                font-family: 'Calibri', sans-serif; 
+                /* Intento de Calibri en distintos sistemas */
+                font-family: "Calibri", "Candara", "Segoe UI", "Optima", Arial, sans-serif; 
                 box-sizing: border-box; 
-                line-height: 1.0; /* Interlineado compacto */
+                line-height: 1.05 !important; 
                 overflow: hidden;
             }
             .label-td p { 
@@ -65,21 +58,21 @@
                 padding: 0 !important; 
                 display: block; 
                 width: 100%;
+                white-space: nowrap; /* Evita que las líneas salten y muevan todo */
             }
-            .bold { font-weight: bold; }
+            .bold { font-weight: bold !important; }
             
-            /* Estilo Sumatoria */
             .st-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
             .st-table th, .st-table td { border: 1px solid black; padding: 4px; font-size: 8.5pt; text-align: center; }
         }
     </style>
 </head>
 <body>
-
+    <!-- El resto de tu body queda igual hasta el final donde están los contenedores -->
     <div class="header">
         <div style="font-weight: bold;">CENTRAL IV</div>
         <div style="display:flex; gap:10px; align-items:center;">
-            <span id="dbStatus" style="font-size:10px;">...</span>
+            <span id="dbStatus" style="font-size:10px;">CONECTANDO...</span>
             <button onclick="calcSuministros()" class="btn" style="background:#673ab7; padding:8px;"><i class="material-icons">calculate</i></button>
             <button onclick="delSelected()" class="btn" style="background:#d32f2f; padding:8px;"><i class="material-icons">delete</i></button>
         </div>
@@ -103,6 +96,7 @@
         <button id="btnDrive" class="btn" style="background:#34a853" onclick="sendDrive()"><i class="material-icons">cloud_upload</i> DRIVE</button>
     </div>
 
+    <!-- MODAL ETIQUETA -->
     <div id="modal-etiq" class="overlay">
         <div class="modal">
             <h3 id="modal-title">Nueva Etiqueta</h3>
